@@ -44,12 +44,20 @@ end
 
 to setup-network
   ;; setup network
-     ;setup-radial-network
-     ;setup-full-network
-     ;setup-ring-network
+  if network-type? = "Radial Network" [
+    setup-radial-network
+  ]
+  if network-type? = "Full Network" [
+    setup-full-network
+  ]
+  if network-type? = "Ring Network" [
+    setup-ring-network
+  ]
+  if network-type? = "Ring Network Less Spokes" [
      setup-ring-network-less-spokes
+  ]
   ;;check in-weights
-     check-weights
+  check-weights
 end
 
   
@@ -325,6 +333,9 @@ end
 ;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Main Procedure  ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;
+
+to go-varyAgents
+end
 
 to go-varyEpsilon
   let eps 0
@@ -642,6 +653,33 @@ BUTTON
 51
 NIL
 go
+T
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+CHOOSER
+3
+426
+212
+471
+network-type?
+network-type?
+"Radial Network" "Full Network" "Ring Network" "Ring Network Less Spokes"
+1
+
+BUTTON
+15
+105
+140
+138
+NIL
+go-varyAgents
 T
 1
 T
@@ -995,7 +1033,7 @@ Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 
 @#$#@#$#@
-NetLogo 5.1.0
+NetLogo 5.2.0
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
