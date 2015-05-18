@@ -46,8 +46,8 @@ to setup-network
   ;; setup network
      ;setup-radial-network
      ;setup-full-network
-     ;setup-ring-network
-     setup-ring-network-less-spokes
+     setup-ring-network
+     ;setup-ring-network-less-spokes
   ;;check in-weights
      check-weights
 end
@@ -90,22 +90,44 @@ to setup-full-network
 end
 
 to setup-ring-network
+  
+  if (number-of-neighbors > total-agents - 2) or (number-of-neighbors mod 2 != 0) or (number-of-neighbors <= 0)  [ print "ERROR" ]
+  
   ; create links in both directions between all neighbours of turtles => ring; except turtle 0 (the control agent)
   foreach sort turtles[
     let agent-who ([who] of ?)
-    let left-agent-who (agent-who - 1)
-    let right-agent-who (agent-who + 1)
-    ask ?[  
-      ifelse (agent-who != 0)[
-        if (left-agent-who = 0)[set left-agent-who (total-agents - 1)]
-        if(right-agent-who = total-agents)[set right-agent-who 1]
-        create-influence-link-to turtle right-agent-who 
-        create-influence-link-to turtle left-agent-who
+    let pair-of-neighbors 1
+;    let left-agent-who (agent-who - 1)
+;    let right-agent-who (agent-who + 1)
+;    ask ?[  
+;      ifelse (agent-who != 0)[
+;        if (left-agent-who = 0)[set left-agent-who (total-agents - 1)]
+;        if(right-agent-who = total-agents)[set right-agent-who 1]
+;        create-influence-link-to turtle right-agent-who 
+;        create-influence-link-to turtle left-agent-who
+;      ]
+;      [ ; for agent 0
+;        create-influence-links-to other turtles
+;        create-influence-links-from other turtles
+;      ]
+;    ]
+    repeat number-of-neighbors / 2 [
+      let left-agent-who ifelse-value (agent-who - pair-of-neighbors > 0) [agent-who - pair-of-neighbors] [ total-agents - pair-of-neighbors ]
+      let right-agent-who ifelse-value (agent-who + pair-of-neighbors < total-agents) [agent-who + pair-of-neighbors] [ pair-of-neighbors ]
+      ifelse (agent-who != 0)
+      [
+        ask ? [
+          create-influence-link-to turtle right-agent-who
+          create-influence-link-to turtle left-agent-who
+        ]  
       ]
-      [ ; for agent 0
-        create-influence-links-to other turtles
-        create-influence-links-from other turtles
+      [
+        ask ? [
+          create-influence-links-to other turtles
+          create-influence-links-from other turtles
+        ]  
       ]
+      set pair-of-neighbors (pair-of-neighbors + 1)
     ]
   ]
   
@@ -608,7 +630,7 @@ INPUTBOX
 182
 248
 total-agents
-10
+6
 1
 0
 Number
@@ -651,6 +673,17 @@ NIL
 NIL
 NIL
 1
+
+INPUTBOX
+15
+410
+185
+470
+number-of-neighbors
+2
+1
+0
+Number
 
 @#$#@#$#@
 ## WHAT IS IT?
@@ -995,7 +1028,7 @@ Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 
 @#$#@#$#@
-NetLogo 5.1.0
+NetLogo 5.2.0
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
@@ -1013,5 +1046,5 @@ Line -7500403 true 150 150 90 180
 Line -7500403 true 150 150 210 180
 
 @#$#@#$#@
-0
+1
 @#$#@#$#@
