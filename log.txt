@@ -370,3 +370,6 @@ epsilon, ticks, convergence-value, weight-of-a0-on-a1, weight-of-neighs-&-self-o
 number of agents: 10
 epsilon, ticks, convergence-value, weight-of-a0-on-a1, weight-of-neighs-&-self-on-a1, weight-of-others-on-a0, self-weight-of-a0, influence-report, weight-report-of-a1, weight-report-of-a0
 0.1, 9, 88.24, 0.75, 0.25, 0.1, 0.9, 0.88, 3, 0.11, 
+number of agents: 10
+epsilon, ticks, convergence-value, weight-of-a0-on-a1, weight-of-neighs-&-self-on-a1, weight-of-others-on-a0, self-weight-of-a0, influence-report, weight-report-of-a1, weight-report-of-a0
+0.1, 103, 80, 0.75, 0.25, 0.1, 0.9, 0.8, 3, 0.11, 

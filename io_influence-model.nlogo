@@ -54,7 +54,9 @@ to setup-network
     setup-ring-network
   ]
   if network-type? = "Ring Network Less Spokes" [
-     setup-ring-network-less-spokes
+    ifelse (total-spokes >= total-agents)
+       [type "Number of spokes cannot exceed number of agent " print total-agents stop]
+       [setup-ring-network-less-spokes]
   ]
   ;;check in-weights
   check-weights
@@ -134,12 +136,28 @@ to setup-ring-network-less-spokes
   let nmbr-spokes total-spokes
   let other-who 1
   let delta round(total-agents / nmbr-spokes)
-  if(delta = 0)[set delta 1] 
-  while [other-who < total-agents ][
+  if(delta = 0)[set delta 1]
+  let counter 1 
+  while [other-who < total-agents and counter <= total-spokes][
     ask turtle 0[
       create-influence-link-to turtle other-who
       create-influence-link-from turtle other-who
       set other-who (other-who + delta)
+      set counter (counter + 1)
+    ]
+  ]
+
+    
+ set counter count([my-out-influence-links] of turtle 0)
+  while [counter < total-spokes][
+    let agent-who random (total-agents)
+    type "agent-who " print agent-who
+    if (agent-who != 0)[
+      ask turtle 0[
+        create-influence-link-to turtle agent-who
+        create-influence-link-from turtle agent-who
+      ]
+      set counter count([my-out-influence-links] of turtle 0)
     ]
   ]
   
@@ -559,7 +577,7 @@ SWITCH
 182
 show-self-value
 show-self-value
-0
+1
 1
 -1000
 
@@ -702,7 +720,7 @@ CHOOSER
 network-type?
 network-type?
 "Radial Network" "Full Network" "Ring Network" "Ring Network Less Spokes"
-2
+3
 
 INPUTBOX
 10
@@ -710,7 +728,7 @@ INPUTBOX
 165
 528
 total-spokes
-8
+10
 1
 0
 Number
