@@ -19,7 +19,7 @@ to setup
   ;; setup network
   setup-network
   
-  set p 2
+  set p 2 ;;what is p?
   
   display-labels
   reset-ticks
@@ -44,12 +44,22 @@ end
 
 to setup-network
   ;; setup network
-     ;setup-radial-network
-     ;setup-full-network
-     ;setup-ring-network
-     setup-ring-network-less-spokes
+  if network-type? = "Radial Network" [
+    setup-radial-network
+  ]
+  if network-type? = "Full Network" [
+    setup-full-network
+  ]
+  if network-type? = "Ring Network" [
+    setup-ring-network
+  ]
+  if network-type? = "Ring Network Less Spokes" [
+    ifelse (total-spokes >= total-agents)
+       [type "Number of spokes cannot exceed number of agent " print total-agents stop]
+       [setup-ring-network-less-spokes]
+  ]
   ;;check in-weights
-     check-weights
+  check-weights
 end
 
   
@@ -122,16 +132,32 @@ to setup-ring-network-less-spokes
   ; create links in both directions between all neighbours of turtles => ring; except turtle 0 (the control agent)
   setup-ring-no-spokes
   
-  ;let nmbr-spokes 3
-  let nmbr-spokes 1
+  ;let nmbr-spokes 1
+  let nmbr-spokes total-spokes
   let other-who 1
   let delta round(total-agents / nmbr-spokes)
-  if(delta = 0)[set delta 1] 
-  while [other-who < total-agents ][
+  if(delta = 0)[set delta 1]
+  let counter 1 
+  while [other-who < total-agents and counter <= total-spokes][
     ask turtle 0[
       create-influence-link-to turtle other-who
       create-influence-link-from turtle other-who
       set other-who (other-who + delta)
+      set counter (counter + 1)
+    ]
+  ]
+
+    
+ set counter count([my-out-influence-links] of turtle 0)
+  while [counter < total-spokes][
+    let agent-who random (total-agents)
+    type "agent-who " print agent-who
+    if (agent-who != 0)[
+      ask turtle 0[
+        create-influence-link-to turtle agent-who
+        create-influence-link-from turtle agent-who
+      ]
+      set counter count([my-out-influence-links] of turtle 0)
     ]
   ]
   
@@ -326,10 +352,30 @@ end
 ;;; Main Procedure  ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;
 
+to go-varyAgents
+  let nbAgents 0
+  let increment 10
+  let max-agents 100
+  
+  while[nbAgents < max-agents][
+    set nbAgents (nbAgents + increment)
+    set total-agents nbAgents
+    type "nombre d'agents: " print nbAgents
+    ;;call to setup network and agents
+    setup
+    reset-ticks
+    ;;select to go-for-once-eps or go-vary-eps
+    ifelse (is-vary-eps?)
+       [go-varyEpsilon]
+       [go-for-one-epsilon]
+  ]
+  stop
+end
+
 to go-varyEpsilon
   let eps 0
   let delta 0.1
-  let max-epsilon epsilon
+  let max-epsilon 1.0;;epsilon
   while[eps < max-epsilon][
     set eps precision (eps + delta) p
     set epsilon eps
@@ -372,7 +418,10 @@ to go-for-one-epsilon
 end
 
 to go
-  go-for-one-epsilon
+  ;;select to go-for-once-eps or go-vary-eps
+  ifelse (is-vary-eps?)
+       [go-varyEpsilon]
+       [go-for-one-epsilon]
   stop
 end
 
@@ -528,26 +577,9 @@ SWITCH
 182
 show-self-value
 show-self-value
-0
+1
 1
 -1000
-
-BUTTON
-12
-63
-185
-97
-NIL
-go-varyEpsilon\n
-T
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
 
 INPUTBOX
 14
@@ -619,7 +651,7 @@ INPUTBOX
 1424
 500
 log-file-path
-c:\\ada\\workspaces\\net-logo\\logs\\log.txt
+log.txt
 1
 0
 String
@@ -631,7 +663,7 @@ SWITCH
 499
 print-log-header
 print-log-header
-1
+0
 1
 -1000
 
@@ -651,6 +683,55 @@ NIL
 NIL
 NIL
 1
+
+BUTTON
+15
+105
+140
+138
+NIL
+go-varyAgents
+T
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+SWITCH
+19
+63
+154
+96
+is-vary-eps?
+is-vary-eps?
+1
+1
+-1000
+
+CHOOSER
+2
+408
+211
+453
+network-type?
+network-type?
+"Radial Network" "Full Network" "Ring Network" "Ring Network Less Spokes"
+3
+
+INPUTBOX
+10
+468
+165
+528
+total-spokes
+10
+1
+0
+Number
 
 @#$#@#$#@
 ## WHAT IS IT?
@@ -995,7 +1076,7 @@ Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 
 @#$#@#$#@
-NetLogo 5.1.0
+NetLogo 5.2.0
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
