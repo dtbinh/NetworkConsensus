@@ -19,7 +19,7 @@ to setup
   ;; setup network
   setup-network
   
-  set p 2
+  set p 2 ;;what is p?
   
   display-labels
   reset-ticks
@@ -335,12 +335,29 @@ end
 ;;;;;;;;;;;;;;;;;;;;;;;
 
 to go-varyAgents
+  let nbAgents 0
+  let increment 10
+  let max-agents 100
+  
+  while[nbAgents < max-agents][
+    set nbAgents (nbAgents + increment)
+    set total-agents nbAgents
+    type "nombre d'agents: " print nbAgents
+    ;;call to setup network and agents
+    setup
+    reset-ticks
+    ;;select to go-for-once-eps or go-vary-eps
+    ifelse (is-vary-eps?)
+       [go-varyEpsilon]
+       [go-for-one-epsilon]
+  ]
+  stop
 end
 
 to go-varyEpsilon
   let eps 0
   let delta 0.1
-  let max-epsilon epsilon
+  let max-epsilon 1.0;;epsilon
   while[eps < max-epsilon][
     set eps precision (eps + delta) p
     set epsilon eps
@@ -383,7 +400,10 @@ to go-for-one-epsilon
 end
 
 to go
-  go-for-one-epsilon
+  ;;select to go-for-once-eps or go-vary-eps
+  ifelse (is-vary-eps?)
+       [go-varyEpsilon]
+       [go-for-one-epsilon]
   stop
 end
 
@@ -543,23 +563,6 @@ show-self-value
 1
 -1000
 
-BUTTON
-12
-63
-185
-97
-NIL
-go-varyEpsilon\n
-T
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
 INPUTBOX
 14
 259
@@ -619,7 +622,7 @@ INPUTBOX
 182
 248
 total-agents
-10
+100
 1
 0
 Number
@@ -630,7 +633,7 @@ INPUTBOX
 1424
 500
 log-file-path
-c:\\ada\\workspaces\\net-logo\\logs\\log.txt
+log.txt
 1
 0
 String
@@ -642,7 +645,7 @@ SWITCH
 499
 print-log-header
 print-log-header
-1
+0
 1
 -1000
 
@@ -671,7 +674,7 @@ CHOOSER
 network-type?
 network-type?
 "Radial Network" "Full Network" "Ring Network" "Ring Network Less Spokes"
-1
+0
 
 BUTTON
 15
@@ -689,6 +692,17 @@ NIL
 NIL
 NIL
 1
+
+SWITCH
+13
+484
+148
+517
+is-vary-eps?
+is-vary-eps?
+1
+1
+-1000
 
 @#$#@#$#@
 ## WHAT IS IT?
