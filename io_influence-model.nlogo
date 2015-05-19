@@ -130,8 +130,8 @@ to setup-ring-network-less-spokes
   ; create links in both directions between all neighbours of turtles => ring; except turtle 0 (the control agent)
   setup-ring-no-spokes
   
-  ;let nmbr-spokes 3
-  let nmbr-spokes 1
+  ;let nmbr-spokes 1
+  let nmbr-spokes total-spokes
   let other-who 1
   let delta round(total-agents / nmbr-spokes)
   if(delta = 0)[set delta 1] 
@@ -622,7 +622,7 @@ INPUTBOX
 182
 248
 total-agents
-100
+10
 1
 0
 Number
@@ -666,16 +666,6 @@ NIL
 NIL
 1
 
-CHOOSER
-3
-426
-212
-471
-network-type?
-network-type?
-"Radial Network" "Full Network" "Ring Network" "Ring Network Less Spokes"
-0
-
 BUTTON
 15
 105
@@ -694,15 +684,36 @@ NIL
 1
 
 SWITCH
-13
-484
-148
-517
+19
+63
+154
+96
 is-vary-eps?
 is-vary-eps?
 1
 1
 -1000
+
+CHOOSER
+2
+408
+211
+453
+network-type?
+network-type?
+"Radial Network" "Full Network" "Ring Network" "Ring Network Less Spokes"
+2
+
+INPUTBOX
+10
+468
+165
+528
+total-spokes
+8
+1
+0
+Number
 
 @#$#@#$#@
 ## WHAT IS IT?
