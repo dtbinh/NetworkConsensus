@@ -100,22 +100,44 @@ to setup-full-network
 end
 
 to setup-ring-network
+  
+  if (number-of-neighbors > total-agents - 2) or (number-of-neighbors mod 2 != 0) or (number-of-neighbors <= 0)  [ print "ERROR" ]
+  
   ; create links in both directions between all neighbours of turtles => ring; except turtle 0 (the control agent)
   foreach sort turtles[
     let agent-who ([who] of ?)
-    let left-agent-who (agent-who - 1)
-    let right-agent-who (agent-who + 1)
-    ask ?[  
-      ifelse (agent-who != 0)[
-        if (left-agent-who = 0)[set left-agent-who (total-agents - 1)]
-        if(right-agent-who = total-agents)[set right-agent-who 1]
-        create-influence-link-to turtle right-agent-who 
-        create-influence-link-to turtle left-agent-who
+    let pair-of-neighbors 1
+;    let left-agent-who (agent-who - 1)
+;    let right-agent-who (agent-who + 1)
+;    ask ?[  
+;      ifelse (agent-who != 0)[
+;        if (left-agent-who = 0)[set left-agent-who (total-agents - 1)]
+;        if(right-agent-who = total-agents)[set right-agent-who 1]
+;        create-influence-link-to turtle right-agent-who 
+;        create-influence-link-to turtle left-agent-who
+;      ]
+;      [ ; for agent 0
+;        create-influence-links-to other turtles
+;        create-influence-links-from other turtles
+;      ]
+;    ]
+    repeat number-of-neighbors / 2 [
+      let left-agent-who ifelse-value (agent-who - pair-of-neighbors > 0) [agent-who - pair-of-neighbors] [ agent-who - pair-of-neighbors + total-agents - 1 ]
+      let right-agent-who ifelse-value (agent-who + pair-of-neighbors < total-agents) [agent-who + pair-of-neighbors] [ agent-who + pair-of-neighbors - total-agents + 1 ]
+      ifelse (agent-who != 0)
+      [
+        ask ? [
+          create-influence-link-to turtle right-agent-who
+          create-influence-link-to turtle left-agent-who
+        ]  
       ]
-      [ ; for agent 0
-        create-influence-links-to other turtles
-        create-influence-links-from other turtles
+      [
+        ask ? [
+          create-influence-links-to other turtles
+          create-influence-links-from other turtles
+        ]  
       ]
+      set pair-of-neighbors (pair-of-neighbors + 1)
     ]
   ]
   
@@ -186,17 +208,33 @@ end
 
 to setup-ring-no-spokes
    ; create links in both directions between all neighbours of turtles => ring; except turtle 0 (the control agent)
+;  foreach sort turtles[
+;    let agent-who ([who] of ?)
+;    let left-agent-who (agent-who - 1)
+;    let right-agent-who (agent-who + 1)
+;    ask ?[  
+;      if(agent-who != 0)[
+;        if (left-agent-who = 0)[set left-agent-who (total-agents - 1)]
+;        if(right-agent-who = total-agents)[set right-agent-who 1]
+;        create-influence-link-to turtle right-agent-who 
+;        create-influence-link-to turtle left-agent-who
+;      ]
+;    ]
+;  ]
   foreach sort turtles[
     let agent-who ([who] of ?)
-    let left-agent-who (agent-who - 1)
-    let right-agent-who (agent-who + 1)
-    ask ?[  
-      if(agent-who != 0)[
-        if (left-agent-who = 0)[set left-agent-who (total-agents - 1)]
-        if(right-agent-who = total-agents)[set right-agent-who 1]
-        create-influence-link-to turtle right-agent-who 
-        create-influence-link-to turtle left-agent-who
+    let pair-of-neighbors 1
+    repeat number-of-neighbors / 2 [
+      let left-agent-who ifelse-value (agent-who - pair-of-neighbors > 0) [agent-who - pair-of-neighbors] [ agent-who - pair-of-neighbors + total-agents - 1 ]
+      let right-agent-who ifelse-value (agent-who + pair-of-neighbors < total-agents) [agent-who + pair-of-neighbors] [ agent-who + pair-of-neighbors - total-agents + 1 ]
+      if (agent-who != 0)
+      [
+        ask ? [
+          create-influence-link-to turtle right-agent-who
+          create-influence-link-to turtle left-agent-who
+        ]  
       ]
+      set pair-of-neighbors (pair-of-neighbors + 1)
     ]
   ]
   ;ask turtle 0[; for agent 0
@@ -284,12 +322,12 @@ to print-weights
 end
 
 to setup-normalised-weights-for-ring-net
-  let number-of-neighbours 2
+  ;let number-of-neighbours 2
   let head-weight (1 - epsilon)
   let own-weight epsilon
   let neighbour-weight 1 * epsilon
   ;normalise wrt 1
-  let norm (head-weight + own-weight + (neighbour-weight * number-of-neighbours)) 
+  let norm (head-weight + own-weight + (neighbour-weight * number-of-neighbors)) 
   ;let head-weight-norm (head-weight / norm)
   let head-weight-norm 0
   let own-weight-norm (own-weight / norm)
@@ -298,7 +336,7 @@ to setup-normalised-weights-for-ring-net
   ask turtles [ 
     foreach sort my-out-influence-links [ ask ? [set weight neighbour-weight-norm ] ] 
     set self-weight own-weight-norm
-    set head-weight-norm (1 - self-weight - (neighbour-weight-norm * number-of-neighbours))
+    set head-weight-norm (1 - self-weight - (neighbour-weight-norm * number-of-neighbors))
   ]
   
   ask turtle 0 [ foreach sort my-out-influence-links [ ask ? [set weight head-weight-norm] ] ]
@@ -587,7 +625,7 @@ INPUTBOX
 183
 319
 epsilon
-0.1
+0.9
 1
 0
 Number
@@ -729,6 +767,17 @@ INPUTBOX
 528
 total-spokes
 10
+1
+0
+Number
+
+INPUTBOX
+10
+540
+162
+600
+number-of-neighbors
+0
 1
 0
 Number
@@ -1094,5 +1143,5 @@ Line -7500403 true 150 150 90 180
 Line -7500403 true 150 150 210 180
 
 @#$#@#$#@
-0
+1
 @#$#@#$#@
