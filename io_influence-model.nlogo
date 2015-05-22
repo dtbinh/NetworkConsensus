@@ -323,7 +323,6 @@ to print-weights
   ]
 end
 
-<<<<<<< HEAD
 to setup-normalised-weights-for-ring-net
   ;let number-of-neighbours 2
   let head-weight (1 - epsilon)
@@ -388,7 +387,7 @@ to setup-normalised-weights-for-ring-net-with-less-spokes [nmbr-spokes]
   ;print weights
   print-weights
 end
-=======
+
 ;to setup-normalised-weights-for-ring-net
 ;  let number-of-neighbours 2
 ;  let head-weight (1 - epsilon)
@@ -453,7 +452,7 @@ end
 ;  ;print weights
 ;  print-weights
 ;end
->>>>>>> origin/master
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Main Procedure  ;;;
