@@ -112,8 +112,8 @@ to setup-ring-network
 ;      ]
 ;    ]
     repeat number-of-neighbors / 2 [
-      let left-agent-who ifelse-value (agent-who - pair-of-neighbors > 0) [agent-who - pair-of-neighbors] [ total-agents - pair-of-neighbors ]
-      let right-agent-who ifelse-value (agent-who + pair-of-neighbors < total-agents) [agent-who + pair-of-neighbors] [ pair-of-neighbors ]
+      let left-agent-who ifelse-value (agent-who - pair-of-neighbors > 0) [agent-who - pair-of-neighbors] [ agent-who - pair-of-neighbors + total-agents - 1 ]
+      let right-agent-who ifelse-value (agent-who + pair-of-neighbors < total-agents) [agent-who + pair-of-neighbors] [ agent-who + pair-of-neighbors - total-agents + 1 ]
       ifelse (agent-who != 0)
       [
         ask ? [
@@ -280,12 +280,12 @@ to print-weights
 end
 
 to setup-normalised-weights-for-ring-net
-  let number-of-neighbours 2
+  ;let number-of-neighbours 2
   let head-weight (1 - epsilon)
   let own-weight epsilon
   let neighbour-weight 1 * epsilon
   ;normalise wrt 1
-  let norm (head-weight + own-weight + (neighbour-weight * number-of-neighbours)) 
+  let norm (head-weight + own-weight + (neighbour-weight * number-of-neighbors)) 
   ;let head-weight-norm (head-weight / norm)
   let head-weight-norm 0
   let own-weight-norm (own-weight / norm)
@@ -294,7 +294,7 @@ to setup-normalised-weights-for-ring-net
   ask turtles [ 
     foreach sort my-out-influence-links [ ask ? [set weight neighbour-weight-norm ] ] 
     set self-weight own-weight-norm
-    set head-weight-norm (1 - self-weight - (neighbour-weight-norm * number-of-neighbours))
+    set head-weight-norm (1 - self-weight - (neighbour-weight-norm * number-of-neighbors))
   ]
   
   ask turtle 0 [ foreach sort my-out-influence-links [ ask ? [set weight head-weight-norm] ] ]
@@ -577,7 +577,7 @@ INPUTBOX
 183
 319
 epsilon
-0.1
+0.9
 1
 0
 Number
@@ -630,7 +630,7 @@ INPUTBOX
 182
 248
 total-agents
-6
+10
 1
 0
 Number
@@ -641,7 +641,7 @@ INPUTBOX
 1424
 500
 log-file-path
-c:\\ada\\workspaces\\net-logo\\logs\\log.txt
+output-premieres-full.txt
 1
 0
 String
@@ -680,7 +680,7 @@ INPUTBOX
 185
 470
 number-of-neighbors
-2
+6
 1
 0
 Number
