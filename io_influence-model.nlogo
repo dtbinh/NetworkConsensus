@@ -72,11 +72,12 @@ to setup-radial-network
   layout-radial turtles influence-links (turtle 0)
   
   ; set weight values
-  ask turtle 0 [ foreach sort my-out-influence-links [ ask ? [set weight (1 - epsilon)] ] ]
-  ask turtle 0 [ foreach sort my-in-influence-links [ ask ? [set weight precision (epsilon / (total-agents - 1)) 5] ] ]
-  ;ask turtles  [ set self-weight epsilon ]
-  ;ask turtle 0 [ set self-weight (1 - epsilon) ]
-  ask turtles  [ set self-weight (1 - get-in-neighbour-weights) ]
+;  ask turtle 0 [ foreach sort my-out-influence-links [ ask ? [set weight (1 - epsilon)] ] ]
+;  ask turtle 0 [ foreach sort my-in-influence-links [ ask ? [set weight precision (epsilon / (total-agents - 1)) 5] ] ]
+;  ;ask turtles  [ set self-weight epsilon ]
+;  ;ask turtle 0 [ set self-weight (1 - epsilon) ]
+;  ask turtles  [ set self-weight (1 - get-in-neighbour-weights) ]
+  setup-weight-net
 end
 
 to setup-full-network
@@ -87,8 +88,8 @@ to setup-full-network
   
   ;set weights
   ;setup-absolute-weight-for-full-net
-  setup-normalised-weights-for-full-net
-  
+  ;setup-normalised-weights-for-full-net
+  setup-weight-net
   ;;set layout
   ;;radial
   ;layout-radial turtles influence-links (turtle 0)
@@ -146,8 +147,8 @@ to setup-ring-network
   ask turtle 0[ set xcor 0 set ycor 0]
   
   ;set weights
-  setup-normalised-weights-for-ring-net
-  
+  ;setup-normalised-weights-for-ring-net 
+  setup-weight-net  
 end
 
 to setup-ring-network-less-spokes
@@ -188,7 +189,8 @@ to setup-ring-network-less-spokes
   ask turtle 0[ set xcor 0 set ycor 0]
   
   ;set weights
-  setup-normalised-weights-for-ring-net-with-less-spokes nmbr-spokes ; call with parameter
+  ;setup-normalised-weights-for-ring-net-with-less-spokes nmbr-spokes ; call with parameter
+  setup-weight-net
   
 end
 
@@ -273,36 +275,36 @@ to setup-absolute-weight-for-full-net
    
 end
 
-;sets weights with respect to epislon, then normalises them wrt to 1
-to setup-normalised-weights-for-full-net
-  let head-weight (1 - epsilon)
-  let own-weight (1 * epsilon)
-  let neighbour-weight (1 * epsilon)
-  ;normalise wrt 1
-  let norm (head-weight + own-weight + (neighbour-weight * (total-agents - 2))) 
-  ;let head-weight-norm (head-weight / norm)
-  let head-weight-norm 0
-  let own-weight-norm (own-weight / norm)
-  let neighbour-weight-norm (neighbour-weight / norm)
-  
-  ask turtles [ 
-    foreach sort my-out-influence-links [ ask ? [set weight neighbour-weight-norm ] ] 
-    set self-weight own-weight-norm
-    set head-weight-norm (1 - self-weight - (neighbour-weight-norm * (total-agents - 2)))
-  ]
-  
-  ask turtle 0 [ foreach sort my-out-influence-links [ ask ? [set weight head-weight-norm] ] ]
-  ask turtle 0 [ foreach sort my-in-influence-links [ ask ? [set weight precision (epsilon / (total-agents - 1)) 100] ] ]
-  ask turtle 0  [ set self-weight (1 - get-in-neighbour-weights) ]
-  
-  ask turtles [ 
-    set self-weight (1 - get-in-neighbour-weights)
-    ]
-  
-  ;print weights
-  print-weights
-
-end
+;;sets weights with respect to epislon, then normalises them wrt to 1
+;to setup-normalised-weights-for-full-net
+;  let head-weight (1 - epsilon)
+;  let own-weight (1 * epsilon)
+;  let neighbour-weight (1 * epsilon)
+;  ;normalise wrt 1
+;  let norm (head-weight + own-weight + (neighbour-weight * (total-agents - 2))) 
+;  ;let head-weight-norm (head-weight / norm)
+;  let head-weight-norm 0
+;  let own-weight-norm (own-weight / norm)
+;  let neighbour-weight-norm (neighbour-weight / norm)
+;  
+;  ask turtles [ 
+;    foreach sort my-out-influence-links [ ask ? [set weight neighbour-weight-norm ] ] 
+;    set self-weight own-weight-norm
+;    set head-weight-norm (1 - self-weight - (neighbour-weight-norm * (total-agents - 2)))
+;  ]
+;  
+;  ask turtle 0 [ foreach sort my-out-influence-links [ ask ? [set weight head-weight-norm] ] ]
+;  ask turtle 0 [ foreach sort my-in-influence-links [ ask ? [set weight precision (epsilon / (total-agents - 1)) 100] ] ]
+;  ask turtle 0  [ set self-weight (1 - get-in-neighbour-weights) ]
+;  
+;  ask turtles [ 
+;    set self-weight (1 - get-in-neighbour-weights)
+;    ]
+;  
+;  ;print weights
+;  print-weights
+;
+;end
 
 ;prints weights of turtle 0 and turtle 1 (from neighbour 2)
 to print-weights
@@ -321,6 +323,7 @@ to print-weights
   ]
 end
 
+<<<<<<< HEAD
 to setup-normalised-weights-for-ring-net
   ;let number-of-neighbours 2
   let head-weight (1 - epsilon)
@@ -385,6 +388,72 @@ to setup-normalised-weights-for-ring-net-with-less-spokes [nmbr-spokes]
   ;print weights
   print-weights
 end
+=======
+;to setup-normalised-weights-for-ring-net
+;  let number-of-neighbours 2
+;  let head-weight (1 - epsilon)
+;  let own-weight epsilon
+;  let neighbour-weight 1 * epsilon
+;  ;normalise wrt 1
+;  let norm (head-weight + own-weight + (neighbour-weight * number-of-neighbours)) 
+;  ;let head-weight-norm (head-weight / norm)
+;  let head-weight-norm 0
+;  let own-weight-norm (own-weight / norm)
+;  let neighbour-weight-norm (neighbour-weight / norm)
+;  
+;  ask turtles [ 
+;    foreach sort my-out-influence-links [ ask ? [set weight neighbour-weight-norm ] ] 
+;    set self-weight own-weight-norm
+;    set head-weight-norm (1 - self-weight - (neighbour-weight-norm * number-of-neighbours))
+;  ]
+;  
+;  ask turtle 0 [ foreach sort my-out-influence-links [ ask ? [set weight head-weight-norm] ] ]
+;  ask turtle 0 [ foreach sort my-in-influence-links [ ask ? [set weight precision (epsilon / (total-agents - 1)) 100] ] ]
+;  ask turtle 0  [ set self-weight (1 - get-in-neighbour-weights) ]
+;  
+;  ask turtles [ 
+;    set self-weight (1 - get-in-neighbour-weights)
+;    ]
+;  
+;  ;print weights
+;  print-weights
+;end
+
+;to setup-normalised-weights-for-ring-net-with-less-spokes [nmbr-spokes]
+;  let number-of-neighbours 2
+;  let head-weight (1 - epsilon)
+;  let own-weight epsilon
+;  let neighbour-weight epsilon
+;  ;normalise wrt 1
+;  let norm 0 
+;  ;let head-weight-norm (head-weight / norm)
+;  let head-weight-norm 0
+;  
+;  ask turtles [ 
+;    ifelse (in-influence-link-neighbor? turtle 0)
+;       [set norm (head-weight + own-weight + (neighbour-weight * number-of-neighbours))]
+;       [set norm (own-weight + (neighbour-weight * number-of-neighbours))]
+;    let own-weight-norm (own-weight / norm)
+;    let neighbour-weight-norm (neighbour-weight / norm)
+;    ;show neighbour-weight-norm
+;    
+;    foreach sort my-in-influence-links [ ask ? [set weight neighbour-weight-norm ] ] ; overwritten for out link to agent 0
+;    set self-weight own-weight-norm
+;    
+;    if (who = 1)[
+;      set head-weight-norm (1 - self-weight - (neighbour-weight-norm * number-of-neighbours))
+;      ]
+;  ]
+; 
+;  ask turtle 0 [ foreach sort my-out-influence-links [ ask ? [set weight head-weight-norm] ] ]
+;  ask turtle 0 [ foreach sort my-in-influence-links [ ask ? [set weight precision (epsilon / nmbr-spokes) 100] ] ]
+;  ask turtle 0  [ set self-weight (1 - get-in-neighbour-weights) ]
+;
+;  
+;  ;print weights
+;  print-weights
+;end
+>>>>>>> origin/master
 
 ;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Main Procedure  ;;;
@@ -562,6 +631,69 @@ to display-labels
   if show-self-value [
     ask turtles [ set label round self-val ]
   ]
+end
+
+;----------------------------------------------------------------------------------------------------------------
+to setup-weight-net
+  let head-weight (1 - epsilon)
+  let own-weight (1 * epsilon)
+  let neighbour-weight (1 * epsilon)
+  let norm 0
+  let number-of-neighbours 0
+  ask turtles[
+    set number-of-neighbours count(my-in-influence-links) 
+    ifelse (in-influence-link-neighbor? turtle 0)
+       [
+         set norm (head-weight + own-weight + (neighbour-weight * (number-of-neighbours - 1 )))
+         foreach sort my-in-influence-links [ ask ? [set weight precision (neighbour-weight / norm) 100 ] ]
+         ask  turtle who [ ask in-influence-link-from turtle 0 [set weight precision (head-weight / norm) 100 ] ]                
+       ]
+       [
+         set norm (own-weight + (neighbour-weight * number-of-neighbours))
+         foreach sort my-in-influence-links [ ask ? [set weight precision (neighbour-weight / norm) 100] ]
+       ]
+       
+  ]
+  ask turtle 0 [ 
+    set number-of-neighbours count(my-in-influence-links)
+    foreach sort my-in-influence-links [ ask ? [set weight precision (epsilon / number-of-neighbours ) 100] ] 
+  ]
+  
+  ask turtles [ 
+    set self-weight (1 - get-in-neighbour-weights)
+    show self-weight
+    ]
+end
+
+;add a single edge from a node to another
+to add-edge [t_from t_to]
+  ask turtle t_from [ create-influence-link-to turtle t_to ]
+  ask turtle t_to [ create-influence-link-to  turtle t_from ]
+end 
+;add multiples edges from list of nodes to another list of nodes
+to add-edges [T_from T_to]
+  (foreach T_from T_to
+    [ add-edge ?1 ?2 ])
+end
+
+; add edges from one to multiple
+to add-edges-from [t_from T_to]
+  foreach T_to [add-edge t_from ?]
+end 
+
+;delete a single edge
+to delete-edge [t_from t_to]
+  ask turtle t_from [ ask out-influence-link-to turtle t_to [die]]
+  ask turtle t_to [ ask out-influence-link-to turtle t_from [die]]
+end 
+;delete multiples edges from list of nodes to another list of nodes
+to delete-edges [T_from T_to]
+  (foreach T_from T_to
+    [ delete-edge ?1 ?2 ])
+end
+;delete edges from one to multiple
+to delete-edges-from [t_from T_to]
+  foreach T_to [delete-edge t_from ?]
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
