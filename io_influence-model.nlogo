@@ -105,41 +105,11 @@ to setup-ring-network
   if (number-of-neighbors > total-agents - 2) or (number-of-neighbors mod 2 != 0) or (number-of-neighbors <= 0)  [ print "ERROR" ]
   
   ; create links in both directions between all neighbours of turtles => ring; except turtle 0 (the control agent)
-  foreach sort turtles[
-    let agent-who ([who] of ?)
-    let pair-of-neighbors 1
-;    let left-agent-who (agent-who - 1)
-;    let right-agent-who (agent-who + 1)
-;    ask ?[  
-;      ifelse (agent-who != 0)[
-;        if (left-agent-who = 0)[set left-agent-who (total-agents - 1)]
-;        if(right-agent-who = total-agents)[set right-agent-who 1]
-;        create-influence-link-to turtle right-agent-who 
-;        create-influence-link-to turtle left-agent-who
-;      ]
-;      [ ; for agent 0
-;        create-influence-links-to other turtles
-;        create-influence-links-from other turtles
-;      ]
-;    ]
-    repeat number-of-neighbors / 2 [
-      let left-agent-who ifelse-value (agent-who - pair-of-neighbors > 0) [agent-who - pair-of-neighbors] [ agent-who - pair-of-neighbors + total-agents - 1 ]
-      let right-agent-who ifelse-value (agent-who + pair-of-neighbors < total-agents) [agent-who + pair-of-neighbors] [ agent-who + pair-of-neighbors - total-agents + 1 ]
-      ifelse (agent-who != 0)
-      [
-        ask ? [
-          create-influence-link-to turtle right-agent-who
-          create-influence-link-to turtle left-agent-who
-        ]  
-      ]
-      [
-        ask ? [
-          create-influence-links-to other turtles
-          create-influence-links-from other turtles
-        ]  
-      ]
-      set pair-of-neighbors (pair-of-neighbors + 1)
-    ]
+  setup-ring-no-spokes
+
+  ask turtle 0 [
+    create-influence-links-to other turtles
+    create-influence-links-from other turtles
   ]
   
   ;set layout
