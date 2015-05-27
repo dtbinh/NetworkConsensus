@@ -251,6 +251,7 @@ to-report get-in-neighbour-weights
   foreach sort my-in-influence-links[
        set in-weight-sum (in-weight-sum + [weight] of ?)  
   ]
+  ;type "get-in-neighbour-weights: " print in-weight-sum
   report in-weight-sum 
 end
 
@@ -317,6 +318,7 @@ to print-weights
     type "agent 1: total weight from in neighbours: " show (get-in-neighbour-weights - ([weight] of in-influence-link-from turtle 0))
     type "agent 1: self weight: " show self-weight
   ]
+
   ask turtle 0 [
     type "agent 0: all in neighs weights: " show get-in-neighbour-weights
     type "agent 0: self-weight: " show self-weight
@@ -500,7 +502,7 @@ to go-for-one-epsilon
   let convergence 1 ; any value bigger than the onvergence-factor
   
   while[convergence >= convergence-factor][
-    type "at ticks: " type ticks print ": " ask turtle 0 [type "self-val of a0: " show self-val] ask turtle 1 [type "self-val of a1: " show self-val]
+    type "at ticks: " type ticks print ": " ask turtle 0 [type "self-val of a0: " show self-val] ask turtle 1 [type "self-val of a1: " show self-val] ask turtle 2 [type "self-val of a2: " show self-val] ask turtle 4 [type "self-val of a4: " show self-val]
     
     ask turtles [ 
       update-in-vals  
@@ -607,14 +609,18 @@ end
 to update-in-vals 
   ;set in-vals sum [self-val] of in-influence-link-neighbors ; my-in-influence-links 
   set in-vals 0
-  let neighbor-impact 0 
+  let neighbour-impact 0 
   let neighbour-weight 0
   let neighbour-self-val 0
   foreach sort in-influence-link-neighbors [ 
     set neighbour-weight [weight] of (in-influence-link-from ?)
     set neighbour-self-val [self-val] of ? 
-    set neighbor-impact (neighbour-self-val * neighbour-weight)
-    set in-vals (in-vals + neighbor-impact) 
+    set neighbour-impact (neighbour-self-val * neighbour-weight)
+    set in-vals (in-vals + neighbour-impact)
+;    type "neighbour weight: " print neighbour-weight 
+;    type "neighbour self-val: " print neighbour-self-val
+;    type "neighbour impact: " print neighbour-impact
+;    type "in-vals: " print in-vals
   ]
   ;type "agent " type [who] of self type " has in-vals: " type [in-vals] of self print ""
 end
@@ -640,7 +646,7 @@ to setup-weight-net
   let norm 0
   let number-of-neighbours 0
   ask turtles[
-    set number-of-neighbours count(my-in-influence-links) 
+    set number-of-neighbours count(my-in-influence-links)
     ifelse (in-influence-link-neighbor? turtle 0)
        [
          set norm (head-weight + own-weight + (neighbour-weight * (number-of-neighbours - 1 )))
@@ -662,6 +668,9 @@ to setup-weight-net
     set self-weight (1 - get-in-neighbour-weights)
     show self-weight
     ]
+  
+  ask turtle 2 [type "self-weight 2: " print self-weight]
+  ask turtle 2 [foreach sort my-in-influence-links [ask ? [type "weight " print ? type ": " print weight] ] ]
 end
 
 ;add a single edge from a node to another
@@ -746,7 +755,7 @@ SWITCH
 182
 show-self-value
 show-self-value
-1
+0
 1
 -1000
 
@@ -756,7 +765,7 @@ INPUTBOX
 183
 319
 epsilon
-0.9
+0.3
 1
 0
 Number
@@ -778,7 +787,7 @@ INPUTBOX
 184
 397
 other's-value
-0
+10
 1
 0
 Number
@@ -897,7 +906,7 @@ INPUTBOX
 165
 528
 total-spokes
-10
+1
 1
 0
 Number
@@ -908,7 +917,7 @@ INPUTBOX
 162
 600
 number-of-neighbors
-0
+2
 1
 0
 Number
