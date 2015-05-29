@@ -58,10 +58,32 @@ to setup-network
        [type "Number of spokes cannot exceed number of agent " print total-agents stop]
        [setup-ring-network-less-spokes]
   ]
+  if network-type? = "Random Network" [
+    setup-random-network
+  ]
   ;;check in-weights
   check-weights
 end
 
+to setup-random-network
+  layout-circle turtles with [who > 0 ] 8
+  ask turtle 0[ set xcor 0 set ycor 0]
+  
+  ;; Simple random network
+;  while [(2 * count links ) <= ( (count turtles) * (count turtles - 1) )] [
+;    ;; Note that if the link already exists, nothing happens
+;    ask one-of turtles [ create-influence-link-to one-of other turtles ]
+;  ]
+   
+   ;; Create a random network with a probability p of creating edges
+   ask turtles [
+      ;; we use "self > myself" here so that each pair of turtles
+      ;; is only considered once
+      create-influence-links-to turtles with [self > myself and
+        random-float 1.0 < 0.5]
+   ]
+   ;setup-weights
+end
   
 to setup-radial-network
   ; create links in both directions between turtle 0 and all other turtles
@@ -719,8 +741,8 @@ CHOOSER
 453
 network-type?
 network-type?
-"Radial Network" "Full Network" "Ring Network" "Ring Network Less Spokes"
-3
+"Radial Network" "Full Network" "Ring Network" "Ring Network Less Spokes" "Random Network"
+4
 
 INPUTBOX
 10
