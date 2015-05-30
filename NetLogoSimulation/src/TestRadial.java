@@ -1,11 +1,11 @@
 import junit.framework.TestCase;
 
 
-public class TestExample extends TestCase {
+public class TestRadial extends TestCase {
 	
 	//protected RadialNetwork radialNetwork;
 	
-	public TestExample(){
+	public TestRadial(){
 		super();
 		
 		try {
@@ -38,5 +38,4 @@ public class TestExample extends TestCase {
 			fail(e.getMessage());
 		}
 	}
-
 }
