@@ -1,6 +1,15 @@
 directed-link-breed [influence-links influence-link]
 
-turtles-own [ self-val in-vals out-val self-weight soc-capital ] ; a node's self value, aggregate in value, out value and social capital value 
+turtles-own [ 
+  self-val 
+  in-vals 
+  out-val 
+  self-weight 
+  soc-capital 
+  
+  ;; a number representing the group this turtle is a member of, or -1 if this turtle is not in a group.
+  my-group
+] ; a node's self value, aggregate in value, out value and social capital value 
 links-own [ weight ]  ; the strength of the influence of the from (out) agent on the to (in) agent -- future: can be calculated as a difference between the strengths of the respective agents
 
 globals [p] ; global variables
@@ -14,12 +23,14 @@ to setup
   
   ;; set shapes
   set-default-shape turtles "circle"
+  
   ;; setup agents
   setup-agents
+  
   ;; setup network
   setup-network
   
-  set p 2 ;;what is p?
+  set p 2
   
   display-labels
   reset-ticks
@@ -30,6 +41,7 @@ to setup-agents
   create-turtles total-agents [ set color blue ]
   ask turtle 0 [ set color red ]
   type "created " type count turtles print " agents"
+  
   ;init self values
   init-agent-values
 end
@@ -55,13 +67,39 @@ to setup-network
   ]
   if network-type? = "Ring Network Less Spokes" [
     ifelse (total-spokes >= total-agents)
-       [type "Number of spokes cannot exceed number of agent " print total-agents stop]
+       [user-message "Number of spokes must be less than total-agents" stop]
        [setup-ring-network-less-spokes]
+  ]
+  if network-type? = "Random Network" [
+    setup-random-network
   ]
   ;;check in-weights
   check-weights
 end
 
+to setup-random-network
+  ;setup layout
+  layout-circle (sort turtles) max-pxcor - 1
+  
+  ;; Simple random network
+;  while [(2 * count links ) <= ( (count turtles) * (count turtles - 1) )] [
+;    ;; Note that if the link already exists, nothing happens
+;    ask one-of turtles [ create-influence-link-to one-of other turtles ]
+;  ]
+   
+   ;; Create a random network with a probability p of creating edges
+   ask turtles [
+      ;; we use "self > myself" here so that each pair of turtles
+      ;; is only considered once and to avoid link to itself
+      create-influence-links-to turtles with [self > myself and
+        random-float 1.0 < random-probability]
+      create-influence-links-from turtles with [self > myself and
+        random-float 1.0 < random-probability]
+   ]
+   
+   ;;set weight values
+   setup-weight-net
+end
   
 to setup-radial-network
   ; create links in both directions between turtle 0 and all other turtles
@@ -72,11 +110,6 @@ to setup-radial-network
   layout-radial turtles influence-links (turtle 0)
   
   ; set weight values
-;  ask turtle 0 [ foreach sort my-out-influence-links [ ask ? [set weight (1 - epsilon)] ] ]
-;  ask turtle 0 [ foreach sort my-in-influence-links [ ask ? [set weight precision (epsilon / (total-agents - 1)) 5] ] ]
-;  ;ask turtles  [ set self-weight epsilon ]
-;  ;ask turtle 0 [ set self-weight (1 - epsilon) ]
-;  ask turtles  [ set self-weight (1 - get-in-neighbour-weights) ]
   setup-weight-net
 end
 
@@ -87,15 +120,9 @@ to setup-full-network
   ]
   
   ;set weights
-  ;setup-absolute-weight-for-full-net
-  ;setup-normalised-weights-for-full-net
   setup-weight-net
+  
   ;;set layout
-  ;;radial
-  ;layout-radial turtles influence-links (turtle 0)
-  ;;spring
-  ;repeat 30 [ layout-spring turtles influence-links 0.2 10 1 ] ;;layout-spring turtle-set link-set spring-constant spring-length repulsion-constant
-  ;;circle
   layout-circle turtles with [who > 0 ] 8 ;layout-circle agentset radius ;; layout-circle list-of-turtles radius
   ask turtle 0[ set xcor 0 set ycor 0]
 end
@@ -147,7 +174,6 @@ to setup-ring-network
   ask turtle 0[ set xcor 0 set ycor 0]
   
   ;set weights
-  ;setup-normalised-weights-for-ring-net 
   setup-weight-net  
 end
 
@@ -155,7 +181,7 @@ to setup-ring-network-less-spokes
   ; create links in both directions between all neighbours of turtles => ring; except turtle 0 (the control agent)
   setup-ring-no-spokes
   
-  ;let nmbr-spokes 1
+  ; set links
   let nmbr-spokes total-spokes
   let other-who 1
   let delta round(total-agents / nmbr-spokes)
@@ -170,7 +196,7 @@ to setup-ring-network-less-spokes
     ]
   ]
 
-    
+ ; set links   
  set counter count([my-out-influence-links] of turtle 0)
   while [counter < total-spokes][
     let agent-who random (total-agents)
@@ -189,7 +215,6 @@ to setup-ring-network-less-spokes
   ask turtle 0[ set xcor 0 set ycor 0]
   
   ;set weights
-  ;setup-normalised-weights-for-ring-net-with-less-spokes nmbr-spokes ; call with parameter
   setup-weight-net
   
 end
@@ -210,35 +235,35 @@ end
 
 to setup-ring-no-spokes
    ; create links in both directions between all neighbours of turtles => ring; except turtle 0 (the control agent)
-;  foreach sort turtles[
-;    let agent-who ([who] of ?)
-;    let left-agent-who (agent-who - 1)
-;    let right-agent-who (agent-who + 1)
-;    ask ?[  
-;      if(agent-who != 0)[
-;        if (left-agent-who = 0)[set left-agent-who (total-agents - 1)]
-;        if(right-agent-who = total-agents)[set right-agent-who 1]
-;        create-influence-link-to turtle right-agent-who 
-;        create-influence-link-to turtle left-agent-who
-;      ]
-;    ]
-;  ]
   foreach sort turtles[
     let agent-who ([who] of ?)
-    let pair-of-neighbors 1
-    repeat number-of-neighbors / 2 [
-      let left-agent-who ifelse-value (agent-who - pair-of-neighbors > 0) [agent-who - pair-of-neighbors] [ agent-who - pair-of-neighbors + total-agents - 1 ]
-      let right-agent-who ifelse-value (agent-who + pair-of-neighbors < total-agents) [agent-who + pair-of-neighbors] [ agent-who + pair-of-neighbors - total-agents + 1 ]
-      if (agent-who != 0)
-      [
-        ask ? [
-          create-influence-link-to turtle right-agent-who
-          create-influence-link-to turtle left-agent-who
-        ]  
+    let left-agent-who (agent-who - 1)
+    let right-agent-who (agent-who + 1)
+    ask ?[  
+      if(agent-who != 0)[
+        if (left-agent-who = 0)[set left-agent-who (total-agents - 1)]
+        if(right-agent-who = total-agents)[set right-agent-who 1]
+        create-influence-link-to turtle right-agent-who 
+        create-influence-link-to turtle left-agent-who
       ]
-      set pair-of-neighbors (pair-of-neighbors + 1)
     ]
   ]
+;  foreach sort turtles[
+;    let agent-who ([who] of ?)
+;    let pair-of-neighbors 1
+;    repeat number-of-neighbors / 2 [
+;      let left-agent-who ifelse-value (agent-who - pair-of-neighbors > 0) [agent-who - pair-of-neighbors] [ agent-who - pair-of-neighbors + total-agents - 1 ]
+;      let right-agent-who ifelse-value (agent-who + pair-of-neighbors < total-agents) [agent-who + pair-of-neighbors] [ agent-who + pair-of-neighbors - total-agents + 1 ]
+;      if (agent-who != 0)
+;      [
+;        ask ? [
+;          create-influence-link-to turtle right-agent-who
+;          create-influence-link-to turtle left-agent-who
+;        ]  
+;      ]
+;      set pair-of-neighbors (pair-of-neighbors + 1)
+;    ]
+;  ]
   ;ask turtle 0[; for agent 0
   ;    create-influence-links-to turtles
   ;    create-influence-links-from other turtles
@@ -275,37 +300,6 @@ to setup-absolute-weight-for-full-net
    
 end
 
-;;sets weights with respect to epislon, then normalises them wrt to 1
-;to setup-normalised-weights-for-full-net
-;  let head-weight (1 - epsilon)
-;  let own-weight (1 * epsilon)
-;  let neighbour-weight (1 * epsilon)
-;  ;normalise wrt 1
-;  let norm (head-weight + own-weight + (neighbour-weight * (total-agents - 2))) 
-;  ;let head-weight-norm (head-weight / norm)
-;  let head-weight-norm 0
-;  let own-weight-norm (own-weight / norm)
-;  let neighbour-weight-norm (neighbour-weight / norm)
-;  
-;  ask turtles [ 
-;    foreach sort my-out-influence-links [ ask ? [set weight neighbour-weight-norm ] ] 
-;    set self-weight own-weight-norm
-;    set head-weight-norm (1 - self-weight - (neighbour-weight-norm * (total-agents - 2)))
-;  ]
-;  
-;  ask turtle 0 [ foreach sort my-out-influence-links [ ask ? [set weight head-weight-norm] ] ]
-;  ask turtle 0 [ foreach sort my-in-influence-links [ ask ? [set weight precision (epsilon / (total-agents - 1)) 100] ] ]
-;  ask turtle 0  [ set self-weight (1 - get-in-neighbour-weights) ]
-;  
-;  ask turtles [ 
-;    set self-weight (1 - get-in-neighbour-weights)
-;    ]
-;  
-;  ;print weights
-;  print-weights
-;
-;end
-
 ;prints weights of turtle 0 and turtle 1 (from neighbour 2)
 to print-weights
   
@@ -322,136 +316,6 @@ to print-weights
     type "agent 0: self-weight: " show self-weight
   ]
 end
-
-to setup-normalised-weights-for-ring-net
-  ;let number-of-neighbours 2
-  let head-weight (1 - epsilon)
-  let own-weight epsilon
-  let neighbour-weight 1 * epsilon
-  ;normalise wrt 1
-  let norm (head-weight + own-weight + (neighbour-weight * number-of-neighbors)) 
-  ;let head-weight-norm (head-weight / norm)
-  let head-weight-norm 0
-  let own-weight-norm (own-weight / norm)
-  let neighbour-weight-norm (neighbour-weight / norm)
-  
-  ask turtles [ 
-    foreach sort my-out-influence-links [ ask ? [set weight neighbour-weight-norm ] ] 
-    set self-weight own-weight-norm
-    set head-weight-norm (1 - self-weight - (neighbour-weight-norm * number-of-neighbors))
-  ]
-  
-  ask turtle 0 [ foreach sort my-out-influence-links [ ask ? [set weight head-weight-norm] ] ]
-  ask turtle 0 [ foreach sort my-in-influence-links [ ask ? [set weight precision (epsilon / (total-agents - 1)) 100] ] ]
-  ask turtle 0  [ set self-weight (1 - get-in-neighbour-weights) ]
-  
-  ask turtles [ 
-    set self-weight (1 - get-in-neighbour-weights)
-    ]
-  
-  ;print weights
-  print-weights
-end
-
-to setup-normalised-weights-for-ring-net-with-less-spokes [nmbr-spokes]
-  let number-of-neighbours 2
-  let head-weight (1 - epsilon)
-  let own-weight epsilon
-  let neighbour-weight epsilon
-  ;normalise wrt 1
-  let norm 0 
-  ;let head-weight-norm (head-weight / norm)
-  let head-weight-norm 0
-  
-  ask turtles [ 
-    ifelse (in-influence-link-neighbor? turtle 0)
-       [set norm (head-weight + own-weight + (neighbour-weight * number-of-neighbours))]
-       [set norm (own-weight + (neighbour-weight * number-of-neighbours))]
-    let own-weight-norm (own-weight / norm)
-    let neighbour-weight-norm (neighbour-weight / norm)
-    ;show neighbour-weight-norm
-    
-    foreach sort my-in-influence-links [ ask ? [set weight neighbour-weight-norm ] ] ; overwritten for out link to agent 0
-    set self-weight own-weight-norm
-    
-    if (who = 1)[
-      set head-weight-norm (1 - self-weight - (neighbour-weight-norm * number-of-neighbours))
-      ]
-  ]
- 
-  ask turtle 0 [ foreach sort my-out-influence-links [ ask ? [set weight head-weight-norm] ] ]
-  ask turtle 0 [ foreach sort my-in-influence-links [ ask ? [set weight precision (epsilon / nmbr-spokes) 100] ] ]
-  ask turtle 0  [ set self-weight (1 - get-in-neighbour-weights) ]
-
-  
-  ;print weights
-  print-weights
-end
-
-;to setup-normalised-weights-for-ring-net
-;  let number-of-neighbours 2
-;  let head-weight (1 - epsilon)
-;  let own-weight epsilon
-;  let neighbour-weight 1 * epsilon
-;  ;normalise wrt 1
-;  let norm (head-weight + own-weight + (neighbour-weight * number-of-neighbours)) 
-;  ;let head-weight-norm (head-weight / norm)
-;  let head-weight-norm 0
-;  let own-weight-norm (own-weight / norm)
-;  let neighbour-weight-norm (neighbour-weight / norm)
-;  
-;  ask turtles [ 
-;    foreach sort my-out-influence-links [ ask ? [set weight neighbour-weight-norm ] ] 
-;    set self-weight own-weight-norm
-;    set head-weight-norm (1 - self-weight - (neighbour-weight-norm * number-of-neighbours))
-;  ]
-;  
-;  ask turtle 0 [ foreach sort my-out-influence-links [ ask ? [set weight head-weight-norm] ] ]
-;  ask turtle 0 [ foreach sort my-in-influence-links [ ask ? [set weight precision (epsilon / (total-agents - 1)) 100] ] ]
-;  ask turtle 0  [ set self-weight (1 - get-in-neighbour-weights) ]
-;  
-;  ask turtles [ 
-;    set self-weight (1 - get-in-neighbour-weights)
-;    ]
-;  
-;  ;print weights
-;  print-weights
-;end
-
-;to setup-normalised-weights-for-ring-net-with-less-spokes [nmbr-spokes]
-;  let number-of-neighbours 2
-;  let head-weight (1 - epsilon)
-;  let own-weight epsilon
-;  let neighbour-weight epsilon
-;  ;normalise wrt 1
-;  let norm 0 
-;  ;let head-weight-norm (head-weight / norm)
-;  let head-weight-norm 0
-;  
-;  ask turtles [ 
-;    ifelse (in-influence-link-neighbor? turtle 0)
-;       [set norm (head-weight + own-weight + (neighbour-weight * number-of-neighbours))]
-;       [set norm (own-weight + (neighbour-weight * number-of-neighbours))]
-;    let own-weight-norm (own-weight / norm)
-;    let neighbour-weight-norm (neighbour-weight / norm)
-;    ;show neighbour-weight-norm
-;    
-;    foreach sort my-in-influence-links [ ask ? [set weight neighbour-weight-norm ] ] ; overwritten for out link to agent 0
-;    set self-weight own-weight-norm
-;    
-;    if (who = 1)[
-;      set head-weight-norm (1 - self-weight - (neighbour-weight-norm * number-of-neighbours))
-;      ]
-;  ]
-; 
-;  ask turtle 0 [ foreach sort my-out-influence-links [ ask ? [set weight head-weight-norm] ] ]
-;  ask turtle 0 [ foreach sort my-in-influence-links [ ask ? [set weight precision (epsilon / nmbr-spokes) 100] ] ]
-;  ask turtle 0  [ set self-weight (1 - get-in-neighbour-weights) ]
-;
-;  
-;  ;print weights
-;  print-weights
-;end
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;
@@ -514,13 +378,12 @@ to go-for-one-epsilon
     set convergence (([self-val] of turtle 0) - ([self-val] of turtle 1))
     tick
   ]
-  print-results 
+  ifelse network-type? = "Random Network" [
+    print-results-for-random
+  ]
+  [ print-results ]
   type "end of test for epsilon: " print epsilon
-  stop
-  
-    ;ifelse (convergence >= convergence-factor)
-    ;  [tick]
-    ; [print-results type "end :)" stop]  
+  stop 
 end
 
 to go
@@ -531,32 +394,34 @@ to go
   stop
 end
 
-;deprecated?:
-to go-once
-  ;setup network and weights
-  setup-network
-  
-  ;go
-  ask turtles [
-    update-in-vals 
-  ]
-  ask turtles[
-    update-self-val
-  ]
-  display-labels
-  show ticks ask turtle 0 [show self-val] show ticks ask turtle 1 [show self-val]
- 
-  ;eval convergence and decide whether or not to go on
-  let convergence-factor 0.1
-  let convergence (([self-val] of turtle 0) - ([self-val] of turtle 1))
-  ifelse (convergence >= convergence-factor)
-     [tick]
-     [print-results type "end :)" stop]  
-end
-
 ;;;;;;;;;;;;;;;;;;;
 ;;; Procedures  ;;;
 ;;;;;;;;;;;;;;;;;;;
+
+to print-results-for-random
+  let convergence-val (precision ([self-val] of turtle 1) p)
+  let influence-report precision ((convergence-val / (head's-value - other's-value))) p
+  
+  type "convergence value: " print convergence-val
+  type "self-weight of agent 0: " print precision ([self-weight] of turtle 0) p
+  type "influence-report: " print influence-report
+  type "ticks: " print ticks
+  
+  ; print in a log file
+  file-open log-file-path ; open the log file for writing (file path indicated as input)
+  if print-log-header[
+    file-type "number of agents: " file-type (count turtles)   
+    file-print ""
+    file-type "epsilon, ticks, convergence-value, influence-report"
+    file-print ""
+  ]
+  file-type epsilon file-type ", "
+  file-type ticks file-type ", " 
+  file-type convergence-val file-type ", "
+  file-type influence-report file-type ", " 
+  file-print ""
+  file-close
+end
 
 ; prints the final results after convergence is reached
 to print-results
@@ -631,6 +496,136 @@ to display-labels
     ask turtles [ set label round self-val ]
   ]
 end
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;                             ;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+to setup-custom-agents [nbOfAgents]
+  ;; set shapes
+  set-default-shape turtles "circle"
+  ;; create agents
+  create-turtles nbOfAgents [ set color blue ]
+  ;; all turtles are initially ungrouped
+  ask turtles [ set my-group -1 ]
+end
+
+to setup-central-agent [ setOfAgents centralAgent ]
+  ask centralAgent [ set color red ]
+  ; init self values
+  init-custom-agent-values setOfAgents centralAgent
+end
+
+to init-custom-agent-values [setOfAgents centralAgent]
+  ; init self values
+  ask setOfAgents with [ who != centralAgent ] [ set self-val other's-value  ]
+  ask one-of setOfAgents with [ who != centralAgent ] [type "--> set self-val of turtle 1..N to: " type [self-val] of turtle who print ""]
+  ask centralAgent [ set self-val head's-value ]
+  type "--> set self-val of turtle " type [who] of centralAgent type " : " type [self-val] of centralAgent print ""
+end
+
+to setup-multiple-networks
+  let counter 0
+  if Radial-Network? [set counter counter + 1 ]
+  if Random-Network? [set counter counter + 1 ]
+  if Full-Network? [set counter counter + 1 ]
+  if Ring-Less-Spokes? [set counter counter + 1 ]
+  
+  ; set total number of agents to create
+  let nbOfAgents 10 ;total-agents
+  set total-agents nbOfAgents * counter
+  if total-agents = 0 [
+    user-message "Total-agents must be bigger than 0"
+    stop
+  ]
+  type "total-agents: " print total-agents
+  
+  clear-all
+  
+  ;; setup agents
+  setup-custom-agents total-agents
+  
+  let unassigned turtles
+  ;; start with group 0 and loop to build each group
+  let current 0
+  while [any? unassigned and current < counter]
+  [
+    ;; place a randomly chosen set of group-size turtles into the current
+    ;; group. or, if there are less than group-size turtles left, place the
+    ;; rest of the turtles in the current group.
+    ask n-of (min (list nbOfAgents (count unassigned))) unassigned
+      [ set my-group current ]
+    ;ask n-of (min (list nbOfAgents (count unassigned))) patches [ sprout 1 ]
+    ;; consider the next group.
+    set current current + 1
+    ;; remove grouped turtles from the pool of turtles to assign
+    set unassigned unassigned with [my-group = -1]
+  ]
+  
+  ;ask turtles [type "Turtle " type who type ": " print my-group print ""]
+  
+  if Radial-Network? [
+    ;set radialSet n-of nbOfAgents turtles
+    set current current - 1
+    let radialGroup current
+    type "Radial group: " print radialGroup
+    let radialSet turtles with [my-group = radialGroup]
+    ;print radialSet
+    setup-custom-radial-network radialSet
+  ]
+  if Random-Network? [
+    ;set randomSet n-of nbOfAgents turtles
+    set current current - 1
+    let randomGroup current
+    type "Random group: " print randomGroup
+    let randomSet turtles with [my-group = randomGroup]
+    ;print randomSet
+    setup-custom-random-network randomSet
+  ]
+  ;if Full-Network? [set fullSet n-of nbOfAgents turtles ]
+  ;if Ring-Less-Spokes? [set ring-spokesSet n-of nbOfAgents turtles ]
+  
+  
+  set p 2
+  
+  display-labels
+  reset-ticks
+end
+
+to setup-custom-random-network [setOfAgents]
+  ;; setup layout
+  layout-circle (sort setOfAgents) 8
+  
+  ;; choose a random node and set it as central node
+  let agent-who one-of setOfAgents
+  setup-central-agent setOfAgents agent-who
+  ;layout-circle setOfAgents 8 ;layout-circle agentset radius ;; layout-circle list-of-turtles radius
+  ;ask agent-who[ set xcor 20 set ycor 20]
+   
+  ;; Create a random network with a probability p of creating edges
+  ask setOfAgents [
+      ;; we use "self > myself" here so that each pair of turtles
+      ;; is only considered once and to avoid link to itself
+      create-influence-links-to setOfAgents with [self > myself and
+        random-float 1.0 < random-probability]
+      create-influence-links-from setOfAgents with [self > myself and
+        random-float 1.0 < random-probability]
+   ]
+end
+
+to setup-custom-radial-network [setOfAgents]
+  ;; choose a random node and set it as central node
+  let agent-who one-of setOfAgents
+  setup-central-agent setOfAgents agent-who
+  ;; create links in both directions between turtle 0 and all other turtles
+  ask agent-who [ create-influence-links-to other setOfAgents ]
+  ask agent-who [ create-influence-links-from other setOfAgents ]
+  ;type "created " type count influence-links print " influence-links"
+  ;; do a radial tree layout, centered on turtle 0
+  layout-radial turtles influence-links (agent-who)
+  ;ask agent-who[ set xcor 2 set ycor 2]
+end
+
 
 ;----------------------------------------------------------------------------------------------------------------
 to setup-weight-net
@@ -709,8 +704,8 @@ GRAPHICS-WINDOW
 1
 1
 0
-1
-1
+0
+0
 1
 -16
 16
@@ -746,7 +741,7 @@ SWITCH
 182
 show-self-value
 show-self-value
-1
+0
 1
 -1000
 
@@ -756,7 +751,7 @@ INPUTBOX
 183
 319
 epsilon
-0.9
+0.4
 1
 0
 Number
@@ -877,7 +872,7 @@ SWITCH
 96
 is-vary-eps?
 is-vary-eps?
-1
+0
 1
 -1000
 
@@ -888,8 +883,8 @@ CHOOSER
 453
 network-type?
 network-type?
-"Radial Network" "Full Network" "Ring Network" "Ring Network Less Spokes"
-3
+"Radial Network" "Full Network" "Ring Network" "Ring Network Less Spokes" "Random Network"
+4
 
 INPUTBOX
 10
@@ -897,7 +892,7 @@ INPUTBOX
 165
 528
 total-spokes
-10
+3
 1
 0
 Number
@@ -912,6 +907,82 @@ number-of-neighbors
 1
 0
 Number
+
+SLIDER
+220
+530
+392
+563
+random-probability
+random-probability
+0
+1
+0
+0.1
+1
+NIL
+HORIZONTAL
+
+BUTTON
+220
+575
+402
+608
+NIL
+setup-multiple-networks
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+SWITCH
+460
+525
+627
+558
+Random-Network?
+Random-Network?
+0
+1
+-1000
+
+SWITCH
+460
+575
+617
+608
+Radial-Network?
+Radial-Network?
+1
+1
+-1000
+
+SWITCH
+665
+530
+807
+563
+Full-Network?
+Full-Network?
+1
+1
+-1000
+
+SWITCH
+665
+580
+837
+613
+Ring-Less-Spokes?
+Ring-Less-Spokes?
+1
+1
+-1000
 
 @#$#@#$#@
 ## WHAT IS IT?
