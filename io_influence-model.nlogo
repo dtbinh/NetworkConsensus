@@ -664,6 +664,80 @@ end
 to delete-edges-from [t_from T_to]
   foreach T_to [delete-edge t_from ?]
 end
+
+;loads a topology from a file
+to load-file [file-name]
+  
+  clear-all
+  
+  ;; set shapes
+  set-default-shape turtles "circle"
+  
+  file-open file-name
+  
+  set total-agents read-from-string file-read-line
+  set epsilon read-from-string file-read-line
+  
+  ; create agents
+  create-turtles total-agents [ set color blue ]
+  ask turtle 0 [ set color red ]
+  type "created " type count turtles print " agents"
+  
+  ; turtle position
+  layout-circle turtles with [who > 0 ] 8
+  ask turtle 0[ set xcor 0 set ycor 0]
+  
+  let i 0
+  let j 0
+  let link-exists "0"
+  
+  while [i < total-agents] [
+    set j 0
+    while [j < total-agents] [
+      set link-exists file-read-characters 1
+      if (link-exists = "1") [
+        ask turtle i [ create-influence-link-to turtle j ]
+      ]
+      if (not file-at-end?) [ set link-exists file-read-characters 1 ]
+      set j (j + 1) 
+    ]
+    set i (i + 1) 
+  ]
+  
+  file-close
+  
+  setup-weight-net
+  
+  set p 2
+  display-labels
+  reset-ticks
+  
+end
+
+to save-file
+    
+  file-open user-new-file
+  
+  file-print total-agents
+  file-print epsilon
+  
+  let i 0
+  let j 0
+  
+  while [i < total-agents] [
+    set j 0
+    while [j < total-agents] [
+      let node-link [in-influence-link-from turtle j] of turtle i
+      file-type ifelse-value (node-link = nobody) [ "0" ] [ "1" ]
+      ifelse (j = total-agents - 1) [ file-print "" ] [ file-type " " ]
+      set j (j + 1) 
+    ]
+    set i (i + 1) 
+  ]
+  
+  file-close
+  
+end
 @#$#@#$#@
 GRAPHICS-WINDOW
 201
@@ -726,7 +800,7 @@ INPUTBOX
 183
 319
 epsilon
-0.9
+0.4
 1
 0
 Number
@@ -859,7 +933,7 @@ CHOOSER
 network-type?
 network-type?
 "Radial Network" "Full Network" "Ring Network" "Ring Network Less Spokes"
-3
+2
 
 INPUTBOX
 10
@@ -878,7 +952,7 @@ INPUTBOX
 162
 600
 number-of-neighbors
-0
+2
 1
 0
 Number
