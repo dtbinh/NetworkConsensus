@@ -668,40 +668,72 @@ end
 ;loads a topology from a file
 to load-file [file-name]
   
+  file-open file-name
+  
   clear-all
+ 
+  ; create agents
+  create-turtles total-agents [ set color blue ]
   
   ;; set shapes
   set-default-shape turtles "circle"
   
-  file-open file-name
-  
-  set total-agents read-from-string file-read-line
   set epsilon read-from-string file-read-line
   
-  ; create agents
-  create-turtles total-agents [ set color blue ]
-  ask turtle 0 [ set color red ]
-  type "created " type count turtles print " agents"
+  let total-clusters read-from-string file-read-line
   
-  ; turtle position
-  layout-circle turtles with [who > 0 ] 8
-  ask turtle 0[ set xcor 0 set ycor 0]
+  let cluster-centers (list turtle 0)
   
+  let cluster-size read-from-string file-read-line
+  let turtle-index cluster-size
+  let cluster-sizes (list cluster-size)
+  
+  let cluster 1
+  
+  while [cluster < total-clusters] [
+    set cluster-size read-from-string file-read-line
+    set cluster-centers lput (turtle turtle-index) cluster-centers
+    set cluster-sizes lput cluster-size cluster-sizes
+    set turtle-index turtle-index + cluster-size
+    set cluster cluster + 1
+  ]
+    
+  set total-agents turtle-index
+  set turtle-index 0
+  set cluster 0
+ 
   let i 0
   let j 0
   let link-exists "0"
   
-  while [i < total-agents] [
-    set j 0
-    while [j < total-agents] [
-      set link-exists file-read-characters 1
-      if (link-exists = "1") [
-        ask turtle i [ create-influence-link-to turtle j ]
-      ]
-      if (not file-at-end?) [ set link-exists file-read-characters 1 ]
-      set j (j + 1) 
+  layout-circle cluster-centers 12
+  foreach cluster-centers [ ask ? [ set color red ]]
+    
+  while [cluster < total-clusters] [
+    
+    set cluster-size item cluster cluster-sizes
+    
+    layout-circle sort turtles with [who > turtle-index and who < turtle-index + cluster-size] 4
+      
+    ask turtles with [who > turtle-index and who < turtle-index + cluster-size] [
+      setxy (xcor + [xcor] of turtle turtle-index) (ycor + [ycor] of turtle turtle-index)  
     ]
-    set i (i + 1) 
+    
+    set i 0
+    while [i < cluster-size] [
+      set j 0
+      while [j < cluster-size] [
+        set link-exists file-read-characters 1
+        if (link-exists = "1" and i != j) [
+          ask turtle (i + turtle-index) [ create-influence-link-to turtle (j + turtle-index) ]
+        ]
+        if (not file-at-end?) [ set link-exists file-read-characters 1 ]
+        set j (j + 1) 
+      ]
+      set i (i + 1) 
+    ]
+    set cluster cluster + 1
+    set turtle-index turtle-index + cluster-size
   ]
   
   file-close
@@ -853,7 +885,7 @@ INPUTBOX
 182
 248
 total-agents
-10
+40
 1
 0
 Number
