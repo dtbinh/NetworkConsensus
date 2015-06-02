@@ -14,6 +14,10 @@ links-own [ weight ]  ; the strength of the influence of the from (out) agent on
 
 globals [p] ; global variables
 
+patches-own [region-group]
+
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Setup Procedures ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;
@@ -524,6 +528,19 @@ to init-custom-agent-values [setOfAgents centralAgent]
   type "--> set self-val of turtle " type [who] of centralAgent type " : " type [self-val] of centralAgent print ""
 end
 
+to-report get-home ;; turtle procedure
+  ;; calculate the minimum length of each side of our grid
+  let side ceiling (sqrt (max [my-group] of turtles + 1))
+
+  report patch
+           ;; compute the x coordinate
+           (round ((world-width / side) * (my-group mod side)
+             + min-pxcor + int (world-width / (side * 2))))
+           ;; compute the y coordinate
+           (round ((world-height / side) * int (my-group / side)
+             + min-pycor + int (world-height / (side * 2))))
+end
+
 to setup-multiple-networks
   let counter 0
   if Radial-Network? [set counter counter + 1 ]
@@ -563,6 +580,11 @@ to setup-multiple-networks
   ]
   
   ;ask turtles [type "Turtle " type who type ": " print my-group print ""]
+  ;; if i'm in a group, move towards "home" for my group
+  ask turtles [
+    if my-group != -1
+      [ face get-home ]
+  ]
   
   if Radial-Network? [
     ;set radialSet n-of nbOfAgents turtles
@@ -804,7 +826,7 @@ INPUTBOX
 182
 248
 total-agents
-10
+20
 1
 0
 Number
@@ -917,7 +939,7 @@ random-probability
 random-probability
 0
 1
-0
+0.3
 0.1
 1
 NIL
@@ -958,7 +980,7 @@ SWITCH
 608
 Radial-Network?
 Radial-Network?
-1
+0
 1
 -1000
 
