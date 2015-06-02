@@ -9,14 +9,14 @@ turtles-own [
   
   ;; a number representing the group this turtle is a member of, or -1 if this turtle is not in a group.
   my-group
+  group
+  group-size
 ] ; a node's self value, aggregate in value, out value and social capital value 
 links-own [ weight ]  ; the strength of the influence of the from (out) agent on the to (in) agent -- future: can be calculated as a difference between the strengths of the respective agents
 
 globals [p] ; global variables
 
-patches-own [region-group]
-
-
+patches-own [belongs-to]
 
 ;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Setup Procedures ;;;
@@ -505,6 +505,11 @@ end
 ;;;;                             ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+to setup-region
+ ask patches [set belongs-to nobody]
+ ;ask patches [ set pcolor 3 ]
+end
+
 to setup-custom-agents [nbOfAgents]
   ;; set shapes
   set-default-shape turtles "circle"
@@ -515,9 +520,31 @@ to setup-custom-agents [nbOfAgents]
 end
 
 to setup-central-agent [ setOfAgents centralAgent ]
-  ask centralAgent [ set color red ]
+  ask centralAgent [ set color red set group-size count setOfAgents]
+  ask centralAgent [ 
+    move-to one-of patches with [not any? other patches in-radius 5 with [belongs-to != nobody]] 
+    set group patches in-radius group-size
+    ask group [set belongs-to myself]
+    let c random 8 + 21
+    ask group [set pcolor c]
+  ]
+  move-to-agent setOfAgents centralAgent
   ; init self values
   init-custom-agent-values setOfAgents centralAgent
+end
+
+to move-to-agent [setOfAgents centralAgent]
+  type "center: " print centralAgent
+  foreach sort setOfAgents [
+    if ( ? != centralAgent ) [
+      ;move-to one-of patches with [not any? other patches in-radius 5 with [belongs-to = centralAgent]]
+      type "move..." print ?
+      ;move-to centralAgent
+      move-to one-of patches with [not any? turtles-here and belongs-to = centralAgent]
+      ;set xcor random-xcor
+      ;set ycor random-ycor
+    ]
+  ]
 end
 
 to init-custom-agent-values [setOfAgents centralAgent]
@@ -528,18 +555,18 @@ to init-custom-agent-values [setOfAgents centralAgent]
   type "--> set self-val of turtle " type [who] of centralAgent type " : " type [self-val] of centralAgent print ""
 end
 
-to-report get-home ;; turtle procedure
-  ;; calculate the minimum length of each side of our grid
-  let side ceiling (sqrt (max [my-group] of turtles + 1))
-
-  report patch
-           ;; compute the x coordinate
-           (round ((world-width / side) * (my-group mod side)
-             + min-pxcor + int (world-width / (side * 2))))
-           ;; compute the y coordinate
-           (round ((world-height / side) * int (my-group / side)
-             + min-pycor + int (world-height / (side * 2))))
-end
+;to-report get-home ;; turtle procedure
+;  ;; calculate the minimum length of each side of our grid
+;  let side ceiling (sqrt (max [my-group] of turtles + 1))
+;
+;  report patch
+;           ;; compute the x coordinate
+;           (round ((world-width / side) * (my-group mod side)
+;             + min-pxcor + int (world-width / (side * 2))))
+;           ;; compute the y coordinate
+;           (round ((world-height / side) * int (my-group / side)
+;             + min-pycor + int (world-height / (side * 2))))
+;end
 
 to setup-multiple-networks
   let counter 0
@@ -558,7 +585,7 @@ to setup-multiple-networks
   type "total-agents: " print total-agents
   
   clear-all
-  
+  setup-region
   ;; setup agents
   setup-custom-agents total-agents
   
@@ -581,10 +608,10 @@ to setup-multiple-networks
   
   ;ask turtles [type "Turtle " type who type ": " print my-group print ""]
   ;; if i'm in a group, move towards "home" for my group
-  ask turtles [
-    if my-group != -1
-      [ face get-home ]
-  ]
+;  ask turtles [
+;    if my-group != -1
+;      [ face get-home ]
+;  ]
   
   if Radial-Network? [
     ;set radialSet n-of nbOfAgents turtles
@@ -644,6 +671,9 @@ to setup-custom-radial-network [setOfAgents]
   ask agent-who [ create-influence-links-from other setOfAgents ]
   ;type "created " type count influence-links print " influence-links"
   ;; do a radial tree layout, centered on turtle 0
+  ask agent-who [ 
+    move-to one-of group
+  ]
   layout-radial turtles influence-links (agent-who)
   ;ask agent-who[ set xcor 2 set ycor 2]
 end
@@ -849,7 +879,7 @@ SWITCH
 499
 print-log-header
 print-log-header
-0
+1
 1
 -1000
 
@@ -906,7 +936,7 @@ CHOOSER
 network-type?
 network-type?
 "Radial Network" "Full Network" "Ring Network" "Ring Network Less Spokes" "Random Network"
-4
+2
 
 INPUTBOX
 10
@@ -939,7 +969,7 @@ random-probability
 random-probability
 0
 1
-0.3
+0.4
 0.1
 1
 NIL
