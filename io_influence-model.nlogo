@@ -1,26 +1,64 @@
+;-----------------------------------
+;---     GLOBAL DEFINITIONS      ---
+;-----------------------------------
+
 directed-link-breed [influence-links influence-link]
 
-turtles-own [ 
-  self-val 
-  in-vals 
-  out-val 
+turtles-own [
+  
+  ; value representing an agents opinion
+  self-val
+  
+  ; sum of in values
+  in-vals
+  
+  ; sum of out values
+  out-val
+  
+  ; social capital
   self-weight 
   soc-capital 
   
-  ;; a number representing the group this turtle is a member of, or -1 if this turtle is not in a group.
+  ; a number representing the group this turtle is a member of, or -1 if this turtle is not in a group.
   my-group
+  
 ] ; a node's self value, aggregate in value, out value and social capital value 
-links-own [ weight ]  ; the strength of the influence of the from (out) agent on the to (in) agent -- future: can be calculated as a difference between the strengths of the respective agents
 
-globals [p] ; global variables
+links-own [ 
+  
+  ; the strength of the influence of the from (out) agent on the to (in) agent -- future: can be calculated as a difference between the strengths of the respective agents
+  weight 
+  
+ ]  
+
+; global variables
+globals [p group-ids total-agents] 
 
 patches-own [region-group]
 
 
+;-----------------------------------
+;---            SETUP            ---
+;-----------------------------------
 
-;;;;;;;;;;;;;;;;;;;;;;;;
-;;; Setup Procedures ;;;
-;;;;;;;;;;;;;;;;;;;;;;;;
+to create-edit-topology [group-id]
+  
+  if (not is-list? group-ids) [ set group-ids [] ]
+   
+  if (not member? group-id group-ids) [
+    create-turtles number-of-agents [ set my-group group-id ]
+    set total-agents total-agents + number-of-agents
+    set group-ids lput group-id group-ids
+  ]
+  
+  let agents turtles with [my-group = group-id]
+  
+end
+
+
+
+
+
 
 to setup
   clear-all
@@ -208,6 +246,7 @@ to check-weights
 end
 
 to setup-ring-no-spokes
+  
    ; create links in both directions between all neighbours of turtles => ring; except turtle 0 (the control agent)
   foreach sort turtles[
     let agent-who ([who] of ?)
@@ -222,26 +261,6 @@ to setup-ring-no-spokes
       ]
     ]
   ]
-;  foreach sort turtles[
-;    let agent-who ([who] of ?)
-;    let pair-of-neighbors 1
-;    repeat number-of-neighbors / 2 [
-;      let left-agent-who ifelse-value (agent-who - pair-of-neighbors > 0) [agent-who - pair-of-neighbors] [ agent-who - pair-of-neighbors + total-agents - 1 ]
-;      let right-agent-who ifelse-value (agent-who + pair-of-neighbors < total-agents) [agent-who + pair-of-neighbors] [ agent-who + pair-of-neighbors - total-agents + 1 ]
-;      if (agent-who != 0)
-;      [
-;        ask ? [
-;          create-influence-link-to turtle right-agent-who
-;          create-influence-link-to turtle left-agent-who
-;        ]  
-;      ]
-;      set pair-of-neighbors (pair-of-neighbors + 1)
-;    ]
-;  ]
-  ;ask turtle 0[; for agent 0
-  ;    create-influence-links-to turtles
-  ;    create-influence-links-from other turtles
-  ;]
   
 end
 
@@ -292,9 +311,9 @@ to print-weights
 end
 
 
-;;;;;;;;;;;;;;;;;;;;;;;
-;;; Main Procedure  ;;;
-;;;;;;;;;;;;;;;;;;;;;;;
+;-----------------------------------
+;---         SIMULATION          ---
+;-----------------------------------
 
 to go-varyAgents
   let nbAgents 0
@@ -368,9 +387,9 @@ to go
   stop
 end
 
-;;;;;;;;;;;;;;;;;;;
-;;; Procedures  ;;;
-;;;;;;;;;;;;;;;;;;;
+;-----------------------------------
+;---     SIMULATION RESULTS      ---
+;-----------------------------------
 
 to print-results-for-random
   let convergence-val (precision ([self-val] of turtle 1) p)
@@ -471,9 +490,9 @@ to display-labels
   ]
 end
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;                             ;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;-----------------------------------
+;---    AUXILIARY PROCEDURES     ---
+;-----------------------------------
 
 to setup-custom-agents [nbOfAgents]
   ;; set shapes
@@ -513,10 +532,10 @@ end
 
 to setup-multiple-networks
   let counter 0
-  if Radial-Network? [set counter counter + 1 ]
-  if Random-Network? [set counter counter + 1 ]
-  if Full-Network? [set counter counter + 1 ]
-  if Ring-Less-Spokes? [set counter counter + 1 ]
+;  if Radial-Network? [set counter counter + 1 ]
+;  if Random-Network? [set counter counter + 1 ]
+;  if Full-Network? [set counter counter + 1 ]
+;  if Ring-Less-Spokes? [set counter counter + 1 ]
   
   ; set total number of agents to create
   let nbOfAgents 10 ;total-agents
@@ -556,24 +575,24 @@ to setup-multiple-networks
       [ face get-home ]
   ]
   
-  if Radial-Network? [
-    ;set radialSet n-of nbOfAgents turtles
-    set current current - 1
-    let radialGroup current
-    type "Radial group: " print radialGroup
-    let radialSet turtles with [my-group = radialGroup]
-    ;print radialSet
-    setup-custom-radial-network radialSet
-  ]
-  if Random-Network? [
-    ;set randomSet n-of nbOfAgents turtles
-    set current current - 1
-    let randomGroup current
-    type "Random group: " print randomGroup
-    let randomSet turtles with [my-group = randomGroup]
-    ;print randomSet
-    setup-custom-random-network randomSet
-  ]
+;  if Radial-Network? [
+;    ;set radialSet n-of nbOfAgents turtles
+;    set current current - 1
+;    let radialGroup current
+;    type "Radial group: " print radialGroup
+;    let radialSet turtles with [my-group = radialGroup]
+;    ;print radialSet
+;    setup-custom-radial-network radialSet
+;  ]
+;  if Random-Network? [
+;    ;set randomSet n-of nbOfAgents turtles
+;    set current current - 1
+;    let randomGroup current
+;    type "Random group: " print randomGroup
+;    let randomSet turtles with [my-group = randomGroup]
+;    ;print randomSet
+;    setup-custom-random-network randomSet
+;  ]
   ;if Full-Network? [set fullSet n-of nbOfAgents turtles ]
   ;if Ring-Less-Spokes? [set ring-spokesSet n-of nbOfAgents turtles ]
   
@@ -619,7 +638,6 @@ to setup-custom-radial-network [setOfAgents]
 end
 
 
-;----------------------------------------------------------------------------------------------------------------
 to setup-weight-net
   let head-weight (1 - epsilon)
   let own-weight (1 * epsilon)
@@ -763,7 +781,7 @@ to load-file [file-name]
   
 end
 
-to save-file
+to save-file [file-name]
     
   file-open user-new-file
   
@@ -789,13 +807,13 @@ to save-file
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-201
-17
-663
-500
+255
+155
+933
+854
 16
 16
-13.7
+20.242424242424242
 1
 10
 1
@@ -816,12 +834,12 @@ ticks
 30.0
 
 BUTTON
-13
-16
-80
-49
-NIL
-setup
+125
+280
+232
+313
+Create / Edit
+create-edit-topology topology-id
 NIL
 1
 T
@@ -833,10 +851,10 @@ NIL
 1
 
 SWITCH
-12
-149
-182
-182
+395
+105
+565
+138
 show-self-value
 show-self-value
 0
@@ -844,21 +862,10 @@ show-self-value
 -1000
 
 INPUTBOX
-14
-259
-183
-319
-epsilon
-0.4
-1
-0
-Number
-
-INPUTBOX
-15
-336
-94
-396
+20
+180
+115
+240
 head's-value
 100
 1
@@ -866,10 +873,10 @@ head's-value
 Number
 
 INPUTBOX
-104
-337
-184
-397
+135
+180
+230
+240
 other's-value
 0
 1
@@ -877,10 +884,10 @@ other's-value
 Number
 
 PLOT
-679
-17
-1647
-432
+960
+95
+1750
+510
 self values
 tick
 self-value
@@ -897,21 +904,21 @@ PENS
 "mid agent" 1.0 0 -7500403 true "" "let mid (total-agents / 2)\nplot [self-val] of turtle mid"
 
 INPUTBOX
-13
-188
-182
-248
-total-agents
 20
+400
+230
+460
+number-of-agents
+40
 1
 0
 Number
 
 INPUTBOX
-851
-440
-1424
-500
+960
+565
+1533
+625
 log-file-path
 log.txt
 1
@@ -919,10 +926,10 @@ log.txt
 String
 
 SWITCH
-677
-466
-841
-499
+1550
+580
+1714
+613
 print-log-header
 print-log-header
 0
@@ -930,10 +937,10 @@ print-log-header
 -1000
 
 BUTTON
+255
+65
+318
 98
-18
-161
-51
 NIL
 go
 T
@@ -947,10 +954,10 @@ NIL
 1
 
 BUTTON
-15
-105
-140
-138
+325
+65
+450
+98
 NIL
 go-varyAgents
 T
@@ -964,10 +971,10 @@ NIL
 1
 
 SWITCH
-19
-63
-154
-96
+255
+105
+390
+138
 is-vary-eps?
 is-vary-eps?
 0
@@ -975,20 +982,20 @@ is-vary-eps?
 -1000
 
 CHOOSER
-2
-408
-211
-453
+20
+470
+229
+515
 network-type?
 network-type?
-"Radial Network" "Full Network" "Ring Network" "Ring Network Less Spokes" "Random Network"
-4
+"Radial Network" "Full Network" "Ring Network" "Custom Wheel Network" "Random Network"
+0
 
 INPUTBOX
-10
-468
-165
-528
+20
+545
+230
+605
 total-spokes
 3
 1
@@ -996,10 +1003,10 @@ total-spokes
 Number
 
 INPUTBOX
-10
-540
-162
-600
+20
+615
+230
+675
 number-of-neighbors
 2
 1
@@ -1007,27 +1014,183 @@ number-of-neighbors
 Number
 
 SLIDER
-220
-530
-392
-563
+20
+715
+230
+748
 random-probability
 random-probability
 0
 1
-0.3
+0.2
 0.1
 1
 NIL
 HORIZONTAL
 
-BUTTON
-220
-575
-402
-608
+TEXTBOX
+255
+25
+405
+46
+SIMULATION
+20
+0.0
+1
+
+TEXTBOX
+20
+25
+170
+46
+SETUP
+20
+0.0
+1
+
+TEXTBOX
+20
+255
+185
+273
+Create & Edit Topologies
+13
+0.0
+1
+
+INPUTBOX
+20
+290
+110
+350
+topology-id
+0
+1
+0
+Number
+
+TEXTBOX
+20
+65
+170
+83
+General parameters
+13
+0.0
+1
+
+TEXTBOX
+20
+375
+170
+393
+Topology Parameters
+13
+0.0
+1
+
+TEXTBOX
+20
+525
+170
+543
+Custom Wheel Parameters
+10
+0.0
+1
+
+SLIDER
+20
+115
+230
+148
+epsilon
+epsilon
+0
+1
+0.4
+0.01
+1
 NIL
-setup-multiple-networks
+HORIZONTAL
+
+TEXTBOX
+20
+95
+170
+113
+Influence factor
+10
+0.0
+1
+
+TEXTBOX
+20
+160
+170
+178
+Initial opinion values
+10
+0.0
+1
+
+TEXTBOX
+20
+690
+170
+708
+Random Network Parameters
+10
+0.0
+1
+
+TEXTBOX
+960
+30
+1175
+50
+SIMULATION RESULTS
+20
+0.0
+1
+
+TEXTBOX
+960
+65
+1110
+83
+Convergence plot
+13
+0.0
+1
+
+TEXTBOX
+960
+530
+1110
+548
+Output file
+13
+0.0
+1
+
+TEXTBOX
+20
+765
+170
+783
+Load & Save Topology
+13
+0.0
+1
+
+BUTTON
+20
+795
+225
+828
+Load topology from file
+load-file user-file
 NIL
 1
 T
@@ -1038,49 +1201,39 @@ NIL
 NIL
 1
 
-SWITCH
-460
-525
-627
-558
-Random-Network?
-Random-Network?
-0
+BUTTON
+20
+840
+225
+873
+Save topology into file
+save-file user-new-file
+NIL
 1
--1000
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
 
-SWITCH
-460
-575
-617
-608
-Radial-Network?
-Radial-Network?
-0
+BUTTON
+125
+325
+230
+358
+Clear all
+clear-all
+NIL
 1
--1000
-
-SWITCH
-665
-530
-807
-563
-Full-Network?
-Full-Network?
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
 1
-1
--1000
-
-SWITCH
-665
-580
-837
-613
-Ring-Less-Spokes?
-Ring-Less-Spokes?
-1
-1
--1000
 
 @#$#@#$#@
 ## WHAT IS IT?
