@@ -136,41 +136,11 @@ to setup-ring-network
   if (number-of-neighbors > total-agents - 2) or (number-of-neighbors mod 2 != 0) or (number-of-neighbors <= 0)  [ print "ERROR" ]
   
   ; create links in both directions between all neighbours of turtles => ring; except turtle 0 (the control agent)
-  foreach sort turtles[
-    let agent-who ([who] of ?)
-    let pair-of-neighbors 1
-;    let left-agent-who (agent-who - 1)
-;    let right-agent-who (agent-who + 1)
-;    ask ?[  
-;      ifelse (agent-who != 0)[
-;        if (left-agent-who = 0)[set left-agent-who (total-agents - 1)]
-;        if(right-agent-who = total-agents)[set right-agent-who 1]
-;        create-influence-link-to turtle right-agent-who 
-;        create-influence-link-to turtle left-agent-who
-;      ]
-;      [ ; for agent 0
-;        create-influence-links-to other turtles
-;        create-influence-links-from other turtles
-;      ]
-;    ]
-    repeat number-of-neighbors / 2 [
-      let left-agent-who ifelse-value (agent-who - pair-of-neighbors > 0) [agent-who - pair-of-neighbors] [ agent-who - pair-of-neighbors + total-agents - 1 ]
-      let right-agent-who ifelse-value (agent-who + pair-of-neighbors < total-agents) [agent-who + pair-of-neighbors] [ agent-who + pair-of-neighbors - total-agents + 1 ]
-      ifelse (agent-who != 0)
-      [
-        ask ? [
-          create-influence-link-to turtle right-agent-who
-          create-influence-link-to turtle left-agent-who
-        ]  
-      ]
-      [
-        ask ? [
-          create-influence-links-to other turtles
-          create-influence-links-from other turtles
-        ]  
-      ]
-      set pair-of-neighbors (pair-of-neighbors + 1)
-    ]
+  setup-ring-no-spokes
+
+  ask turtle 0 [
+    create-influence-links-to other turtles
+    create-influence-links-from other turtles
   ]
   
   ;set layout
@@ -741,6 +711,112 @@ end
 to delete-edges-from [t_from T_to]
   foreach T_to [delete-edge t_from ?]
 end
+
+;loads a topology from a file
+to load-file [file-name]
+  
+  file-open file-name
+  
+  clear-all
+ 
+  ; create agents
+  create-turtles total-agents [ set color blue ]
+  
+  ;; set shapes
+  set-default-shape turtles "circle"
+  
+  set epsilon read-from-string file-read-line
+  
+  let total-clusters read-from-string file-read-line
+  
+  let cluster-centers (list turtle 0)
+  
+  let cluster-size read-from-string file-read-line
+  let turtle-index cluster-size
+  let cluster-sizes (list cluster-size)
+  
+  let cluster 1
+  
+  while [cluster < total-clusters] [
+    set cluster-size read-from-string file-read-line
+    set cluster-centers lput (turtle turtle-index) cluster-centers
+    set cluster-sizes lput cluster-size cluster-sizes
+    set turtle-index turtle-index + cluster-size
+    set cluster cluster + 1
+  ]
+    
+  set total-agents turtle-index
+  set turtle-index 0
+  set cluster 0
+ 
+  let i 0
+  let j 0
+  let link-exists "0"
+  
+  layout-circle cluster-centers 12
+  foreach cluster-centers [ ask ? [ set color red ]]
+    
+  while [cluster < total-clusters] [
+    
+    set cluster-size item cluster cluster-sizes
+    
+    layout-circle sort turtles with [who > turtle-index and who < turtle-index + cluster-size] 4
+      
+    ask turtles with [who > turtle-index and who < turtle-index + cluster-size] [
+      setxy (xcor + [xcor] of turtle turtle-index) (ycor + [ycor] of turtle turtle-index)  
+    ]
+    
+    set i 0
+    while [i < cluster-size] [
+      set j 0
+      while [j < cluster-size] [
+        set link-exists file-read-characters 1
+        if (link-exists = "1" and i != j) [
+          ask turtle (i + turtle-index) [ create-influence-link-to turtle (j + turtle-index) ]
+        ]
+        if (not file-at-end?) [ set link-exists file-read-characters 1 ]
+        set j (j + 1) 
+      ]
+      set i (i + 1) 
+    ]
+    set cluster cluster + 1
+    set turtle-index turtle-index + cluster-size
+  ]
+  
+  file-close
+  
+  setup-weight-net
+  
+  set p 2
+  display-labels
+  reset-ticks
+  
+end
+
+to save-file
+    
+  file-open user-new-file
+  
+  file-print total-agents
+  file-print epsilon
+  
+  let i 0
+  let j 0
+  
+  while [i < total-agents] [
+    set j 0
+    while [j < total-agents] [
+      let node-link [in-influence-link-from turtle j] of turtle i
+      file-type ifelse-value (node-link = nobody) [ "0" ] [ "1" ]
+      ifelse (j = total-agents - 1) [ file-print "" ] [ file-type " " ]
+      set j (j + 1) 
+    ]
+    set i (i + 1) 
+  ]
+  
+  file-close
+  
+end
 @#$#@#$#@
 GRAPHICS-WINDOW
 201
@@ -955,7 +1031,7 @@ INPUTBOX
 162
 600
 number-of-neighbors
-0
+2
 1
 0
 Number
