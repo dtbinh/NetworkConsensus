@@ -1,0 +1,102 @@
+to reset-simulation
+  
+  stop
+  
+  reset-ticks
+  
+  adjust-agent-values
+  
+end
+
+to go-varyAgents
+  let nbAgents 0
+  let increment 10
+  let max-agents 100
+  
+  while[nbAgents < max-agents][
+    set nbAgents (nbAgents + increment)
+    set total-agents nbAgents
+    type "nombre d'agents: " print nbAgents
+    ;;call to setup network and agents
+    ;setup
+    reset-ticks
+    ;;select to go-for-once-eps or go-vary-eps
+    ifelse (is-vary-eps?)
+       [go-varyEpsilon]
+       [go-for-one-epsilon]
+  ]
+  stop
+end
+
+to go-varyEpsilon
+  let eps 0
+  let delta 0.1
+  let max-epsilon 1.0;;epsilon
+  while[eps < max-epsilon][
+    set eps precision (eps + delta) p
+    set epsilon eps
+    adjust-agent-values
+    ;setup network and weights
+    adjust-network
+    reset-ticks
+    go-for-one-epsilon
+  ]
+  stop
+end
+
+to go-for-one-epsilon
+  
+  let convergence 1 ; any value bigger than the onvergence-factor
+  
+  while[convergence >= convergence-factor][
+    type "at ticks: " type ticks print ": " ask turtle 0 [type "self-val of a0: " show self-val] ask turtle 1 [type "self-val of a1: " show self-val]
+    
+    ask turtles [ 
+      update-in-vals  
+    ]
+    ask turtles[
+      update-self-val
+    ]
+    display-labels
+    
+    ;eval convergence and decide whether or not to go on
+    set convergence (([self-val] of turtle 0) - ([self-val] of turtle 1))
+    tick
+  ]
+  ifelse network-type? = "Random Network" [
+    print-results-for-random
+  ]
+  [ print-results ]
+  type "end of test for epsilon: " print epsilon
+  stop 
+end
+
+to go
+  ;;select to go-for-once-eps or go-vary-eps
+  ifelse (is-vary-eps?)
+       [go-varyEpsilon]
+       [go-for-one-epsilon]
+  stop
+end
+
+to update-in-vals 
+  ;set in-vals sum [self-val] of in-influence-link-neighbors ; my-in-influence-links 
+  set in-vals 0
+  let neighbor-impact 0 
+  let neighbour-weight 0
+  let neighbour-self-val 0
+  foreach sort in-influence-link-neighbors [ 
+    set neighbour-weight [weight] of (in-influence-link-from ?)
+    set neighbour-self-val [self-val] of ? 
+    set neighbor-impact (neighbour-self-val * neighbour-weight)
+    set in-vals (in-vals + neighbor-impact) 
+  ]
+  ;type "agent " type [who] of self type " has in-vals: " type [in-vals] of self print ""
+end
+
+to update-self-val
+  let old-self-val self-val
+  set self-val (in-vals + (old-self-val * self-weight)) 
+  ;type "agent " type [who] of self type " has self-val: " type [self-val] of self print ""
+end
+

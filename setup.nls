@@ -1,0 +1,143 @@
+;----------------------------------------------------------------------------;
+;
+;    NetworkConsensus - SETUP MODULE                                                  
+;    
+;    Authors:
+;        Leonardo Mizoguti
+;        Man Hue Tran Diep
+;        Thierry Fosso Kenne
+;
+;    Coordinator: Ada Diaconescu
+;
+;-----------------------------------------------------------------------------
+
+;----------------------------------------------------------------------------;
+;  This module is responsible for retrieving the topologies' parameters      ;
+;  and call the procedures from the TOPOLOGY MODULE to setup correctly       ;
+;  the whole network.                                                        ;
+;----------------------------------------------------------------------------;
+
+; This procedure responds to the "Edit group" button and creates/modifies a given group 
+; identified by group-id according to the topology parameters
+to edit-group
+  
+  ; adjust agents by creating turtles or killing them if necessary  
+  adjust-agents
+  
+  ; adjust network by creating the right links
+  adjust-network
+  
+  ; validate network to avoid inconsistencies   
+  validate-network
+  
+  ; display labels if necessary
+  display-labels
+
+end
+
+to adjust-agents
+  
+  ; set the default shape as "circle"
+  set-default-shape turtles "circle" 
+  
+  ; get number of turtles with the given group-id
+  let number-of-turtles-in-group count turtles with [my-group = group-id]
+  
+  ; create/kill turtles if the number of turtles with the given group-id is different
+  ; from the given number of agents
+  ifelse (number-of-turtles-in-group < number-of-agents) [
+    create-turtles (number-of-agents - number-of-turtles-in-group) [ set my-group group-id set complementary-link false ]
+  ]
+  [
+    ask max-n-of (number-of-turtles-in-group - number-of-agents) turtles with [ my-group = group-id ] [who] [ die ]
+  ]
+  
+  ; adjust the agent values according to their type
+  adjust-agent-values
+  
+end
+
+to adjust-agent-values
+  ask turtles with [ agent-type = 0 ] [ set color blue set self-val other's-value ]
+  ask turtles with [ agent-type = 1 ] [ set color red set self-val head's-value ]
+end
+
+to adjust-network
+  
+  ; setup network
+  if network-type? = "Radial Network" [
+    setup-radial-network
+  ]
+  if network-type? = "Full Network" [
+    setup-full-network
+  ]
+  if network-type? = "Ring Network" [
+    setup-ring-network
+  ]
+  if network-type? = "Ring Network Less Spokes" [
+    ifelse (total-spokes >= total-agents)
+       [user-message "Number of spokes must be less than total-agents" stop]
+       [setup-ring-network-less-spokes]
+  ]
+  if network-type? = "Random Network" [
+    setup-random-network
+  ]
+  
+end
+
+to validate-network
+  
+  ; checks if the weights of all in-influence links + self-weight
+  ; for each node is equal to 1 
+  check-weights
+  
+end
+
+
+
+;add a single edge from a node to another
+to add-edge [t_from t_to]
+  ask turtle t_from [ create-influence-link-to turtle t_to ]
+  ask turtle t_to [ create-influence-link-to  turtle t_from ]
+end 
+;add multiples edges from list of nodes to another list of nodes
+to add-edges [T_from T_to]
+  (foreach T_from T_to
+    [ add-edge ?1 ?2 ])
+end
+
+; add edges from one to multiple
+to add-edges-from [t_from T_to]
+  foreach T_to [add-edge t_from ?]
+end 
+
+;delete a single edge
+to delete-edge [t_from t_to]
+  ask turtle t_from [ ask out-influence-link-to turtle t_to [die]]
+  ask turtle t_to [ ask out-influence-link-to turtle t_from [die]]
+end 
+;delete multiples edges from list of nodes to another list of nodes
+to delete-edges [T_from T_to]
+  (foreach T_from T_to
+    [ delete-edge ?1 ?2 ])
+end
+;delete edges from one to multiple
+to delete-edges-from [t_from T_to]
+  foreach T_to [delete-edge t_from ?]
+end
+
+to-report internal-group-id
+    let group my-group
+    report position self sort turtles with [ my-group = group ]
+end
+
+to-report turtle-with-group-and-internal-id[turtle-group-id internal-id]
+    report item internal-id sort turtles with [my-group = turtle-group-id ]
+end
+
+to display-labels
+  ask turtles [ set label "" ]
+  if show-self-value [
+    ask turtles [ set label round self-val ]
+  ]
+end
