@@ -5,7 +5,7 @@ turtles-own [
   in-vals 
   out-val 
   self-weight 
-  soc-capital 
+  soc-capital
   
   ;; a number representing the group this turtle is a member of, or -1 if this turtle is not in a group.
   my-group
@@ -14,7 +14,12 @@ turtles-own [
 ] ; a node's self value, aggregate in value, out value and social capital value 
 links-own [ weight ]  ; the strength of the influence of the from (out) agent on the to (in) agent -- future: can be calculated as a difference between the strengths of the respective agents
 
-globals [p] ; global variables
+globals [
+  p
+  new-node  ;; the last node we created
+  degrees   ;; this is an array that contains each node in
+            ;; proportion to its degree
+] ; global variables
 
 patches-own [belongs-to]
 
@@ -22,17 +27,40 @@ patches-own [belongs-to]
 ;;; Setup Procedures ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;
 
+;to do-layout
+;  layout-spring (turtles with [any? link-neighbors]) links 0.4 6 1
+;end
+
+;to layout
+;  ;; the number 10 here is arbitrary; more repetitions slows down the
+;  ;; model, but too few gives poor layouts
+;  repeat 10 [
+;    do-layout
+;    display  ;; so we get smooth animation
+;  ]
+;end
+
 to setup
   clear-all
   
-  ;; set shapes
-  set-default-shape turtles "circle"
+  ifelse network-type? = "Scale-free Network" [
+    ifelse (num-edges >= total-agents or num-edges = 0)
+       [user-message "Number of edges must be less than total-agents" stop]
+       [
+         setup-scale-free-network
+         check-weights
+       ]
+  ]
+  [
+    ;; set shapes
+    set-default-shape turtles "circle"
   
-  ;; setup agents
-  setup-agents
+    ;; setup agents
+    setup-agents
   
-  ;; setup network
-  setup-network
+    ;; setup network
+    setup-network
+  ]
   
   set p 2
   
@@ -79,6 +107,42 @@ to setup-network
   ]
   ;;check in-weights
   check-weights
+end
+
+to setup-scale-free-network
+  ca
+  set degrees []   ;; initialize the array to be empty
+  ;; make the initial network of two nodes and an edge
+  set-default-shape turtles "circle"
+  ;; make the initial network of two nodes and an edge
+  make-node ;; first node
+  let first-node new-node
+  let prev-node new-node
+  repeat num-edges [
+    make-node ;; second node
+    make-edge new-node prev-node ;; make the edge
+    set degrees lput prev-node degrees
+    set degrees lput new-node degrees
+    set prev-node new-node
+  ]
+  make-edge new-node first-node
+  ask first-node [
+    set self-val head's-value
+    set color red
+  ]
+
+  while [count turtles < total-agents] [
+    make-node  ;; add one new node
+    
+    ;; it's going to have m edges
+    repeat num-edges [
+      let partner find-partner new-node      ;; find a partner for the new node
+      ;ask partner [set color blue]    ;; set color of partner to gray
+      make-edge new-node partner     ;; connect it to the partner we picked before
+    ]
+  ]
+
+  setup-weight-net
 end
 
 to setup-random-network
@@ -495,24 +559,38 @@ to setup-central-agent [ setOfAgents centralAgent ]
     move-to one-of patches with [not any? other patches in-radius 5 with [belongs-to != nobody]] 
     set group patches in-radius group-size
     ask group [set belongs-to myself]
-    let c random 8 + 21
-    ask group [set pcolor c]
   ]
-  move-to-agent setOfAgents centralAgent
+  ;move-to-agent setOfAgents centralAgent
   ; init self values
   init-custom-agent-values setOfAgents centralAgent
 end
 
+to move-central-agent [centralAgent]
+  ask centralAgent [ 
+    move-to one-of patches with [not any? other patches in-radius 5 with [belongs-to != nobody or belongs-to = centralAgent]] 
+    set group patches in-radius group-size
+    ask group [set belongs-to myself]
+  ]
+end
+
 to move-to-agent [setOfAgents centralAgent]
-  type "center: " print centralAgent
+  type "center node: " print centralAgent
+  let delta 1
   foreach sort setOfAgents [
     if ( ? != centralAgent ) [
-      ;move-to one-of patches with [not any? other patches in-radius 5 with [belongs-to = centralAgent]]
       type "move..." print ?
+      ask ? [
+        let x-cor xcor + [xcor] of centralAgent
+        let y-cor ycor + [ycor] of centralAgent
+        while [x-cor > max-pxcor] [set x-cor x-cor - delta]
+        while [x-cor < min-pxcor] [set x-cor x-cor + delta]
+        while [y-cor > max-pycor] [set y-cor y-cor - delta]
+        while [y-cor < min-pycor] [set y-cor y-cor + delta]
+        setxy x-cor y-cor
+        ;setxy (xcor + [xcor] of centralAgent) (ycor + [ycor] of centralAgent)
+      ]
       ;move-to centralAgent
-      move-to one-of patches with [not any? turtles-here and belongs-to = centralAgent]
-      ;set xcor random-xcor
-      ;set ycor random-ycor
+      ;move-to one-of patches with [not any? turtles-here and belongs-to = centralAgent]
     ]
   ]
 end
@@ -567,7 +645,7 @@ to setup-multiple-networks
     ;; place a randomly chosen set of group-size turtles into the current
     ;; group. or, if there are less than group-size turtles left, place the
     ;; rest of the turtles in the current group.
-    ask n-of (min (list nbOfAgents (count unassigned))) unassigned
+    ask n-of (min sort (list nbOfAgents (count unassigned))) unassigned
       [ set my-group current ]
     ;ask n-of (min (list nbOfAgents (count unassigned))) patches [ sprout 1 ]
     ;; consider the next group.
@@ -601,8 +679,22 @@ to setup-multiple-networks
     ;print randomSet
     setup-custom-random-network randomSet
   ]
-  ;if Full-Network? [set fullSet n-of nbOfAgents turtles ]
-  ;if Ring-Less-Spokes? [set ring-spokesSet n-of nbOfAgents turtles ]
+  if Full-Network? [
+    set current current - 1
+    let fullGroup current
+    type "Full group: " print fullGroup
+    let fullSet turtles with [my-group = fullGroup]
+    ;print fullSet
+    setup-custom-full-network fullSet
+  ]
+  if Ring-Less-Spokes? [
+    set current current - 1
+    let spokesGroup current
+    type "RingLessSpokes group: " print spokesGroup
+    let spokesSet turtles with [my-group = spokesGroup]
+    ;print spokesSet
+    setup-custom-ring-less-spokes-network spokesSet 
+  ]
   
   
   set p 2
@@ -611,15 +703,95 @@ to setup-multiple-networks
   reset-ticks
 end
 
-to setup-custom-random-network [setOfAgents]
+to setup-custom-ring-no-spokes [setOfAgents centralAgent startIndex]
+  let nbAgents (count setOfAgents) + startIndex
+  type "nbAgents: " print nbAgents
+  foreach sort setOfAgents[
+    let agent-who ([who] of ?)
+    let left-agent-who (agent-who - 1)
+    let right-agent-who (agent-who + 1)
+    ask ?[  
+      if(agent-who != ([who] of centralAgent))[
+        if (left-agent-who = ([who] of centralAgent))[set left-agent-who (nbAgents - 1)]
+        if(right-agent-who = nbAgents)[set right-agent-who 1]
+        create-influence-link-to turtle right-agent-who 
+        create-influence-link-to turtle left-agent-who
+      ]
+    ]
+  ]  
+end
+
+to setup-custom-ring-less-spokes-network [spokesSet]
+  ;; choose a random node and set it as central node
+  let centralAgent one-of spokesSet
+  setup-central-agent spokesSet centralAgent
+  
+  ;; create links in both directions between all neighbours of turtles => ring; except turtle 0 (the control agent)
+  setup-custom-ring-no-spokes spokesSet centralAgent 0
+  
+  ; set links
+;  let nmbr-spokes total-spokes
+;  let nbAgents (count spokesSet)
+;  let other-who 1
+;  let delta round(nbAgents / nmbr-spokes)
+;  if(delta = 0)[set delta 1]
+;  let counter 1 
+;  while [other-who < nbAgents and counter <= total-spokes][
+;    ask turtle 0[
+;      create-influence-link-to turtle other-who
+;      create-influence-link-from turtle other-who
+;      set other-who (other-who + delta)
+;      set counter (counter + 1)
+;    ]
+;  ]
+;
+; ; set links   
+; set counter count([my-out-influence-links] of turtle centralAgent)
+;  while [counter < total-spokes][
+;    let agent-who one-of spokesSet
+;    type "agent-who " print agent-who
+;    if (agent-who != ([who] of centralAgent))[
+;      ask centralAgent[
+;        create-influence-link-to turtle agent-who
+;        create-influence-link-from turtle agent-who
+;      ]
+;      set counter count([my-out-influence-links] of centralAgent)
+;    ]
+;  ]
+  
+  ;set layout
+  layout-circle sort turtles with [who > ([who] of centralAgent) ] 5 ;layout-circle agentset radius ;; layout-circle list-of-turtles radius
+  
+  ;set weights
+  setup-weight-net
+end
+
+to setup-custom-full-network [setOfAgents]
   ;; setup layout
-  layout-circle (sort setOfAgents) 8
+  layout-circle (sort setOfAgents) 5
   
   ;; choose a random node and set it as central node
   let agent-who one-of setOfAgents
   setup-central-agent setOfAgents agent-who
-  ;layout-circle setOfAgents 8 ;layout-circle agentset radius ;; layout-circle list-of-turtles radius
-  ;ask agent-who[ set xcor 20 set ycor 20]
+  
+  ; create links in both directions between all pairs of turtles
+  foreach sort setOfAgents[
+    ask ? [ create-influence-links-to other setOfAgents ]
+  ]
+  
+  ;set weights
+  setup-weight-net
+  
+  move-to-agent setOfAgents agent-who
+end
+
+to setup-custom-random-network [setOfAgents]
+  ;; setup layout
+  layout-circle (sort setOfAgents) 5
+  
+  ;; choose a random node and set it as central node
+  let agent-who one-of setOfAgents
+  setup-central-agent setOfAgents agent-who
    
   ;; Create a random network with a probability p of creating edges
   ask setOfAgents [
@@ -630,12 +802,17 @@ to setup-custom-random-network [setOfAgents]
       create-influence-links-from setOfAgents with [self > myself and
         random-float 1.0 < random-probability]
    ]
+  move-to-agent setOfAgents agent-who
 end
 
 to setup-custom-radial-network [setOfAgents]
+  ;; setup layout
+  layout-circle (sort setOfAgents) 5
+  
   ;; choose a random node and set it as central node
   let agent-who one-of setOfAgents
-  setup-central-agent setOfAgents agent-who
+  setup-central-agent setOfAgents agent-who 
+ 
   ;; create links in both directions between turtle 0 and all other turtles
   ask agent-who [ create-influence-links-to other setOfAgents ]
   ask agent-who [ create-influence-links-from other setOfAgents ]
@@ -644,10 +821,85 @@ to setup-custom-radial-network [setOfAgents]
   ask agent-who [ 
     move-to one-of group
   ]
-  layout-radial turtles influence-links (agent-who)
-  ;ask agent-who[ set xcor 2 set ycor 2]
+  ;; setup layout
+  ;layout-radial setOfAgents influence-links (agent-who)
+  move-to-agent setOfAgents agent-who
 end
 
+to-report find-partner [node1]
+  ;; set a local variable called ispref that
+  ;; determines if this link is going to be
+  ;; preferential of not
+  let ispref (random-float 1 >= gamma)
+  
+  ;; initialize partner to be the node itself
+  ;; this will have to be changed
+  let partner node1
+  
+  ;; if preferential attachment then choose
+  ;; from our degrees array
+  ;; otherwise chose one of the turtles at random
+
+  ifelse ispref 
+  [ set partner one-of degrees ]
+  [ set partner one-of turtles ]
+     
+   ;; but need to check that partner chosen isn't
+   ;; the node itself and also isn't a node that
+   ;; our node is already connected to
+   ;; if this is the case, it will try another
+   ;; partner and try again
+  let checkit true
+  while [checkit] [
+    ask partner [
+      ifelse ((link-neighbor? node1) or (partner = node1))
+        [
+          ifelse ispref 
+          [
+            set partner one-of degrees
+           ]
+           [
+             set partner one-of turtles
+           ]
+            set checkit true
+         ]
+         [
+           set checkit false
+         ]
+       ] 
+    ]
+  report partner
+end
+
+;; used for creating a new node
+to make-node
+  crt 1
+  [
+    set color blue
+    set self-val other's-value
+    set new-node self ;; set the new-node global
+  ]
+end
+
+;; connects the two nodes
+to make-edge [node1 node2]
+  ask node1 [
+    ifelse (node1 = node2) 
+    [
+      show "error: self-loop attempted"
+    ]
+    [
+      create-influence-link-to node2
+      create-influence-link-from node2
+      ;; position the new node near its partner
+      ;setxy ([xcor] of node2) ([ycor] of node2)
+      move-to node1
+      fd 8
+      set degrees lput node1 degrees
+      set degrees lput node2 degrees
+     ]
+  ]
+end
 
 ;----------------------------------------------------------------------------------------------------------------
 to setup-weight-net
@@ -879,7 +1131,7 @@ INPUTBOX
 183
 319
 epsilon
-0.4
+1
 1
 0
 Number
@@ -1011,8 +1263,8 @@ CHOOSER
 453
 network-type?
 network-type?
-"Radial Network" "Full Network" "Ring Network" "Ring Network Less Spokes" "Random Network"
-2
+"Radial Network" "Full Network" "Ring Network" "Ring Network Less Spokes" "Random Network" "Scale-free Network"
+5
 
 INPUTBOX
 10
@@ -1075,7 +1327,7 @@ SWITCH
 558
 Random-Network?
 Random-Network?
-0
+1
 1
 -1000
 
@@ -1108,9 +1360,35 @@ SWITCH
 613
 Ring-Less-Spokes?
 Ring-Less-Spokes?
-1
+0
 1
 -1000
+
+SLIDER
+855
+535
+1027
+568
+gamma
+gamma
+0
+3
+1
+0.1
+1
+NIL
+HORIZONTAL
+
+INPUTBOX
+860
+585
+1012
+645
+num-edges
+2
+1
+0
+Number
 
 @#$#@#$#@
 ## WHAT IS IT?
