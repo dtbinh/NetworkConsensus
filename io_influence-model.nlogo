@@ -70,14 +70,16 @@ to create-edit-topology [group-id]
       let fullSet turtles with [my-group = group-id]
       setup-custom-full-network fullSet
     ]
-;  ;if Ring-Less-Spokes? [
-;    set current current - 1
-;    let spokesGroup current
-;    type "RingLessSpokes group: " print spokesGroup
-;    let spokesSet turtles with [my-group = spokesGroup]
-;    ;print spokesSet
-;    setup-custom-ring-less-spokes-network spokesSet 
-;  ;]
+    if network-type? = "Ring Network" [
+      type "Ring Network group: " print group-id
+      let ringSet turtles with [my-group = group-id]
+      setup-custom-ring-network ringSet 
+    ]
+    if network-type? = "Ring Network Less Spokes" [
+      type "Ring Network Less Spokes group: " print group-id
+      let spokesSet turtles with [my-group = group-id]
+      setup-custom-ring-less-spokes-network spokesSet 
+    ]
   
     set p 2
     
@@ -735,75 +737,113 @@ to setup-multiple-networks
 end
 
 to setup-custom-ring-no-spokes [setOfAgents centralAgent startIndex]
-  ;let nbAgents (count setOfAgents) + startIndex
-  ;type "nbAgents: " print nbAgents
-  ;; build a list of index numbers
-  let temp sort setOfAgents 
-  let indexes n-values length temp [ ? ]
-  type "indexes: " print indexes
-  (foreach temp indexes [ ;; assign ?1 and ?2 to temp variables for easy access 
-      let value ?1 
-      let index ?2 
-      ;; use value and index in here... 
-   ]) 
-;  foreach sort setOfAgents[
-;    let agent-who ([who] of ?)
-;    let left-agent-who (agent-who - 1)
-;    let right-agent-who (agent-who + 1)
-;    ask ?[  
-;      if(agent-who != ([who] of centralAgent))[
-;        if (left-agent-who = ([who] of centralAgent))[set left-agent-who (nbAgents - 1)]
-;        if(right-agent-who = nbAgents)[set right-agent-who 1]
-;        create-influence-link-to turtle right-agent-who 
-;        create-influence-link-to turtle left-agent-who
-;      ]
-;    ]
-;  ]  
+
+  let maxIndex (startIndex + count setOfAgents)
+  ; create links in both directions between all neighbours of turtles => ring; except turtle 0 (the control agent)
+  foreach sort setOfAgents[
+    let agent-who ([who] of ?)
+    let left-agent-who (agent-who - 1)
+    let right-agent-who (agent-who + 1)
+    ask ?[  
+      if(agent-who != ([who] of centralAgent))[
+        if (left-agent-who < startIndex) [set left-agent-who startIndex]
+        ;if (left-agent-who = startIndex) [set left-agent-who maxIndex - 1]
+        if (right-agent-who = maxIndex) [set right-agent-who startIndex]
+        if (right-agent-who != agent-who) [ create-influence-link-to turtle right-agent-who ]
+        if (left-agent-who != agent-who) [ create-influence-link-to turtle left-agent-who ]
+      ]
+    ]
+  ]
+  ; remove redundant links
+  let node-left nobody
+  let node-right nobody
+  ask centralAgent [
+    ask my-in-influence-links [
+      ifelse (node-left = nobody) [ set node-left [who] of end1 ] [ set node-right [who] of end1 ]
+       die
+    ]
+  ]
+  if (node-left != nobody and node-right != nobody) [
+    ask turtle node-left[
+      create-influence-link-to turtle node-right
+      create-influence-link-from turtle node-right
+    ]
+  ]
+end
+
+to setup-custom-ring-network [ringSet]
+  let network-size count ringSet
+  if (number-of-neighbors > network-size - 2) or (number-of-neighbors mod 2 != 0) or (number-of-neighbors <= 0)  [ user-message "ERROR: Number of neighbors must be less than number of agents or number of agent must be divisible by 2" stop]
+  
+  ;; choose a random node and set it as central node
+  let startIndex (total-agents - network-size)
+  let centralAgent turtle startIndex
+  setup-central-agent ringSet centralAgent
+  
+  ; create links in both directions between all neighbours of turtles => ring; except turtle 0 (the control agent)
+  setup-custom-ring-no-spokes ringSet centralAgent startIndex
+  
+  ask centralAgent [
+    create-influence-links-to other turtles
+    create-influence-links-from other turtles
+  ]
+  
+  ;set layout
+  layout-circle sort ringSet with [who > startIndex ] 5 ;layout-circle agentset radius ;; layout-circle list-of-turtles radius
+  move-to-agent ringSet centralAgent
+  
+  ;set weights
+  setup-weight-net  
+  
 end
 
 to setup-custom-ring-less-spokes-network [spokesSet]
+  let network-size count spokesSet
+  let startIndex (total-agents - network-size)
   ;; choose a random node and set it as central node
-  let centralAgent one-of spokesSet
-  ;setup-central-agent spokesSet centralAgent
+  let centralAgent turtle startIndex
+  setup-central-agent spokesSet centralAgent
   
   ;; create links in both directions between all neighbours of turtles => ring; except turtle 0 (the control agent)
-  setup-custom-ring-no-spokes spokesSet centralAgent 0
+  setup-custom-ring-no-spokes spokesSet centralAgent startIndex
   
-  ; set links
+;  ; set links
 ;  let nmbr-spokes total-spokes
 ;  let nbAgents (count spokesSet)
-;  let other-who 1
+;  let other-who [who] of (one-of spokesSet with [who != ([who] of centralAgent)])
 ;  let delta round(nbAgents / nmbr-spokes)
 ;  if(delta = 0)[set delta 1]
 ;  let counter 1 
-;  while [other-who < nbAgents and counter <= total-spokes][
-;    ask turtle 0[
-;      create-influence-link-to turtle other-who
-;      create-influence-link-from turtle other-who
-;      set other-who (other-who + delta)
-;      set counter (counter + 1)
-;    ]
-;  ]
-;
-; ; set links   
-; set counter count([my-out-influence-links] of turtle centralAgent)
-;  while [counter < total-spokes][
-;    let agent-who one-of spokesSet
-;    type "agent-who " print agent-who
-;    if (agent-who != ([who] of centralAgent))[
-;      ask centralAgent[
-;        create-influence-link-to turtle agent-who
-;        create-influence-link-from turtle agent-who
+;  while [other-who < maxIndex and counter <= total-spokes][
+;    if (other-who != ([who] of centralAgent)) [
+;      ask centralAgent[   
+;        create-influence-link-to turtle other-who
+;        create-influence-link-from turtle other-who
+;        set other-who (other-who + delta)
+;        set counter (counter + 1)
 ;      ]
-;      set counter count([my-out-influence-links] of centralAgent)
 ;    ]
 ;  ]
+
+ ; set links   
+ let counter count([my-out-influence-links] of centralAgent)
+  while [counter < total-spokes][
+    let agent-who [who] of (one-of spokesSet with [who != ([who] of centralAgent)])
+    if (agent-who > ([who] of centralAgent))[
+      ask centralAgent[
+        create-influence-link-to turtle agent-who
+        create-influence-link-from turtle agent-who
+      ]
+      set counter count([my-out-influence-links] of centralAgent)
+    ]
+  ]
   
   ;set layout
-  layout-circle sort turtles with [who > ([who] of centralAgent) ] 5 ;layout-circle agentset radius ;; layout-circle list-of-turtles radius
+  layout-circle sort spokesSet with [who != ([who] of centralAgent) ] 5 ;layout-circle agentset radius ;; layout-circle list-of-turtles radius
   
   ;set weights
-  ;setup-weight-net
+  setup-weight-net
+  move-to-agent spokesSet centralAgent
 end
 
 to setup-custom-full-network [setOfAgents]
@@ -921,7 +961,38 @@ to make-node
   ]
 end
 
-;; connects the two nodes
+;; create link between two node
+;; input by turle id
+to create-edge [id1 id2]
+  let node1 turtle id1
+  let node2 turtle id2
+  ask node1 [
+    ifelse (node1 = node2) 
+    [
+      show "error: self-loop attempted"
+    ]
+    [
+      create-influence-link-to node2
+      create-influence-link-from node2
+    ]
+  ]
+end
+
+to connect-network [id1 id2]
+  let node1 turtle id1
+  let node2 turtle id2
+  ask node1 [
+    ifelse (my-group != ([my-group] of node2) and node1 != node2) [
+        create-influence-link-to node2
+        create-influence-link-from node2
+    ]
+    [
+      show "error: self-loop attempted"
+    ]
+  ]
+end
+
+;; connects the two nodes (turle)
 to make-edge [node1 node2]
   ask node1 [
     ifelse (node1 = node2) 
@@ -1292,7 +1363,7 @@ CHOOSER
 network-type?
 network-type?
 "Radial Network" "Full Network" "Ring Network" "Ring Network Less Spokes" "Random Network" "Scale-free Network"
-1
+3
 
 INPUTBOX
 20
@@ -1367,7 +1438,7 @@ INPUTBOX
 110
 350
 topology-id
-3
+1
 1
 0
 Number
