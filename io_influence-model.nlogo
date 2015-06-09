@@ -48,16 +48,45 @@ globals [
 ;-----------------------------------
 
 to create-edit-topology [group-id]
+  if (group-id = 0) [user-message "ERROR: Please choose a group number differs than 0" stop]
   
-  if (not is-list? group-ids) [ set group-ids [] ]
-   
-  if (not member? group-id group-ids) [
-    create-turtles number-of-agents [ set my-group group-id ]
+  if (not is-list? group-ids) [ set group-ids [] setup-region ]
+  
+  ifelse (not member? group-id group-ids) [
     set total-agents total-agents + number-of-agents
+    create-turtles number-of-agents [ set my-group group-id ]
+    if network-type? = "Radial Network" [
+      type "Radial group: " print group-id
+      let radialSet turtles with [my-group = group-id]
+      setup-custom-radial-network radialSet
+    ]
+    if network-type? = "Random Network" [
+      type "Random group: " print group-id
+      let randomSet turtles with [my-group = group-id]
+      setup-custom-random-network randomSet
+    ]
+    if network-type? = "Full Network" [
+      type "Full group: " print group-id
+      let fullSet turtles with [my-group = group-id]
+      setup-custom-full-network fullSet
+    ]
+;  ;if Ring-Less-Spokes? [
+;    set current current - 1
+;    let spokesGroup current
+;    type "RingLessSpokes group: " print spokesGroup
+;    let spokesSet turtles with [my-group = spokesGroup]
+;    ;print spokesSet
+;    setup-custom-ring-less-spokes-network spokesSet 
+;  ;]
+  
+    set p 2
+    
+    display-labels
+    reset-ticks
     set group-ids lput group-id group-ids
   ]
-  
-  let agents turtles with [my-group = group-id]
+  [user-message "ERROR: Group ID has already existed!" stop]
+  ;let agents turtles with [my-group = group-id]
   
 end
 
@@ -66,7 +95,7 @@ to setup
   clear-all
   
   ifelse network-type? = "Scale-free Network" [
-    ifelse (num-edges >= total-agents or num-edges = 0)
+    ifelse (num-edges >= number-of-agents or num-edges = 0)
        [user-message "Number of edges must be less than total-agents" stop]
        [
          setup-scale-free-network
@@ -92,7 +121,7 @@ end
 
 to setup-agents
   ; create agents
-  create-turtles total-agents [ set color blue ]
+  create-turtles number-of-agents [ set color blue ]
   ask turtle 0 [ set color red ]
   type "created " type count turtles print " agents"
   
@@ -120,7 +149,7 @@ to setup-network
     setup-ring-network
   ]
   if network-type? = "Ring Network Less Spokes" [
-    ifelse (total-spokes >= total-agents)
+    ifelse (total-spokes >= number-of-agents)
        [user-message "Number of spokes must be less than total-agents" stop]
        [setup-ring-network-less-spokes]
   ]
@@ -219,7 +248,7 @@ end
 
 to setup-ring-network
   
-  if (number-of-neighbors > total-agents - 2) or (number-of-neighbors mod 2 != 0) or (number-of-neighbors <= 0)  [ print "ERROR" ]
+  if (number-of-neighbors > number-of-agents - 2) or (number-of-neighbors mod 2 != 0) or (number-of-neighbors <= 0)  [ user-message "ERROR: Number of neighbors must be less than number of agents or number of agent must be divisible by 2" stop]
   
   ; create links in both directions between all neighbours of turtles => ring; except turtle 0 (the control agent)
   setup-ring-no-spokes
@@ -244,10 +273,10 @@ to setup-ring-network-less-spokes
   ; set links
   let nmbr-spokes total-spokes
   let other-who 1
-  let delta round(total-agents / nmbr-spokes)
+  let delta round(number-of-agents / nmbr-spokes)
   if(delta = 0)[set delta 1]
   let counter 1 
-  while [other-who < total-agents and counter <= total-spokes][
+  while [other-who < number-of-agents and counter <= total-spokes][
     ask turtle 0[
       create-influence-link-to turtle other-who
       create-influence-link-from turtle other-who
@@ -302,8 +331,8 @@ to setup-ring-no-spokes
     let right-agent-who (agent-who + 1)
     ask ?[  
       if(agent-who != 0)[
-        if (left-agent-who = 0)[set left-agent-who (total-agents - 1)]
-        if(right-agent-who = total-agents)[set right-agent-who 1]
+        if (left-agent-who = 0)[set left-agent-who (number-of-agents - 1)]
+        if(right-agent-who = number-of-agents)[set right-agent-who 1]
         create-influence-link-to turtle right-agent-who 
         create-influence-link-to turtle left-agent-who
       ]
@@ -600,9 +629,9 @@ end
 
 to init-custom-agent-values [setOfAgents centralAgent]
   ; init self values
-  ask setOfAgents with [ who != centralAgent ] [ set self-val other's-value  ]
+  ask setOfAgents with [ who != centralAgent ] [ set self-val other's-value set color blue ]
   ask one-of setOfAgents with [ who != centralAgent ] [type "--> set self-val of turtle 1..N to: " type [self-val] of turtle who print ""]
-  ask centralAgent [ set self-val head's-value ]
+  ask centralAgent [ set self-val head's-value set color red ]
   type "--> set self-val of turtle " type [who] of centralAgent type " : " type [self-val] of centralAgent print ""
 end
 
@@ -620,14 +649,14 @@ end
 ;end
 
 to setup-multiple-networks
-  let counter 0
+  let counter 1
 ;  if Radial-Network? [set counter counter + 1 ]
 ;  if Random-Network? [set counter counter + 1 ]
 ;  if Full-Network? [set counter counter + 1 ]
 ;  if Ring-Less-Spokes? [set counter counter + 1 ]
   
   ; set total number of agents to create
-  let nbOfAgents 10 ;total-agents
+  let nbOfAgents 10 ;number-of-agents
   set total-agents nbOfAgents * counter
   if total-agents = 0 [
     user-message "Total-agents must be bigger than 0"
@@ -690,14 +719,14 @@ to setup-multiple-networks
 ;    ;print fullSet
 ;    setup-custom-full-network fullSet
 ;  ]
-;  if Ring-Less-Spokes? [
-;    set current current - 1
-;    let spokesGroup current
-;    type "RingLessSpokes group: " print spokesGroup
-;    let spokesSet turtles with [my-group = spokesGroup]
-;    ;print spokesSet
-;    setup-custom-ring-less-spokes-network spokesSet 
-;  ]
+  ;if Ring-Less-Spokes? [
+    set current current - 1
+    let spokesGroup current
+    type "RingLessSpokes group: " print spokesGroup
+    let spokesSet turtles with [my-group = spokesGroup]
+    ;print spokesSet
+    setup-custom-ring-less-spokes-network spokesSet 
+  ;]
   
   set p 2
   
@@ -706,27 +735,36 @@ to setup-multiple-networks
 end
 
 to setup-custom-ring-no-spokes [setOfAgents centralAgent startIndex]
-  let nbAgents (count setOfAgents) + startIndex
-  type "nbAgents: " print nbAgents
-  foreach sort setOfAgents[
-    let agent-who ([who] of ?)
-    let left-agent-who (agent-who - 1)
-    let right-agent-who (agent-who + 1)
-    ask ?[  
-      if(agent-who != ([who] of centralAgent))[
-        if (left-agent-who = ([who] of centralAgent))[set left-agent-who (nbAgents - 1)]
-        if(right-agent-who = nbAgents)[set right-agent-who 1]
-        create-influence-link-to turtle right-agent-who 
-        create-influence-link-to turtle left-agent-who
-      ]
-    ]
-  ]  
+  ;let nbAgents (count setOfAgents) + startIndex
+  ;type "nbAgents: " print nbAgents
+  ;; build a list of index numbers
+  let temp sort setOfAgents 
+  let indexes n-values length temp [ ? ]
+  type "indexes: " print indexes
+  (foreach temp indexes [ ;; assign ?1 and ?2 to temp variables for easy access 
+      let value ?1 
+      let index ?2 
+      ;; use value and index in here... 
+   ]) 
+;  foreach sort setOfAgents[
+;    let agent-who ([who] of ?)
+;    let left-agent-who (agent-who - 1)
+;    let right-agent-who (agent-who + 1)
+;    ask ?[  
+;      if(agent-who != ([who] of centralAgent))[
+;        if (left-agent-who = ([who] of centralAgent))[set left-agent-who (nbAgents - 1)]
+;        if(right-agent-who = nbAgents)[set right-agent-who 1]
+;        create-influence-link-to turtle right-agent-who 
+;        create-influence-link-to turtle left-agent-who
+;      ]
+;    ]
+;  ]  
 end
 
 to setup-custom-ring-less-spokes-network [spokesSet]
   ;; choose a random node and set it as central node
   let centralAgent one-of spokesSet
-  setup-central-agent spokesSet centralAgent
+  ;setup-central-agent spokesSet centralAgent
   
   ;; create links in both directions between all neighbours of turtles => ring; except turtle 0 (the control agent)
   setup-custom-ring-no-spokes spokesSet centralAgent 0
@@ -765,7 +803,7 @@ to setup-custom-ring-less-spokes-network [spokesSet]
   layout-circle sort turtles with [who > ([who] of centralAgent) ] 5 ;layout-circle agentset radius ;; layout-circle list-of-turtles radius
   
   ;set weights
-  setup-weight-net
+  ;setup-weight-net
 end
 
 to setup-custom-full-network [setOfAgents]
@@ -1174,7 +1212,7 @@ INPUTBOX
 230
 460
 number-of-agents
-40
+10
 1
 0
 Number
@@ -1202,9 +1240,9 @@ print-log-header
 -1000
 
 BUTTON
-255
+330
 65
-318
+393
 98
 NIL
 go
@@ -1219,9 +1257,9 @@ NIL
 1
 
 BUTTON
-325
+400
 65
-450
+525
 98
 NIL
 go-varyAgents
@@ -1254,7 +1292,7 @@ CHOOSER
 network-type?
 network-type?
 "Radial Network" "Full Network" "Ring Network" "Ring Network Less Spokes" "Random Network" "Scale-free Network"
-5
+1
 
 INPUTBOX
 20
@@ -1287,7 +1325,7 @@ random-probability
 random-probability
 0
 1
-0
+0.1
 0.1
 1
 NIL
@@ -1329,7 +1367,7 @@ INPUTBOX
 110
 350
 topology-id
-0
+3
 1
 0
 Number
@@ -1373,7 +1411,7 @@ epsilon
 epsilon
 0
 1
-0.4
+1
 0.01
 1
 NIL
@@ -1534,6 +1572,40 @@ TEXTBOX
 Scale-free Network
 10
 0.0
+1
+
+BUTTON
+610
+105
+792
+138
+NIL
+setup-multiple-networks
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+255
+65
+317
+98
+NIL
+setup
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
 1
 
 @#$#@#$#@
