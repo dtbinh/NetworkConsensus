@@ -17,12 +17,12 @@ to-report simulate-varying-agents
   let simulation-result ifelse-value (is-vary-eps?) [simulate-varying-epsilon][simulate]
   
   if simulation-result [
-      edit-group nobody
-      if (is-vary-eps?) [ set eps min-eps ]
-      reset-ticks
+      if (is-vary-eps?) [ set eps min-eps set epsilon eps ]
       set agt (agt + step-agents)
       if agt > max-agents [ report true ]
       set number-of-agents agt
+      edit-group nobody
+      reset-ticks
   ]
   report false
 
@@ -31,20 +31,20 @@ end
 to-report simulate-varying-epsilon
   
   if simulate [
-    setup-weight-net
-    reset-ticks
-    adjust-agent-values
     set eps precision (eps + step-eps) ((-1) * floor(log step-eps 10))
     if eps > max-eps [ report true ]
     set epsilon eps
+    setup-influence-links-weight
+    adjust-agent-type-properties
+    reset-ticks
   ]
   report false
   
 end
 
 to-report simulate
-  
-  let convergence (([self-val] of turtle 0) - ([self-val] of turtle 1))
+    
+  let convergence (([self-val] of max-one-of turtles [self-val]) - ([self-val] of min-one-of turtles [self-val]))
  
   ;eval convergence and decide whether or not to go on
   ifelse convergence >= convergence-precision 
@@ -74,25 +74,50 @@ end
 
 to validate-simulation
   
-  ; validate network to avoid inconsistencies   
-  validate-network
+  ; validate network and simulation options to avoid inconsistencies   
+  if (validate-network and validate-simulation-options) [
+    adjust-agent-type-properties
+    display-labels
+    reset-ticks
+  ]
+  
+end
+
+to-report validate-network
+  
+  ; check if network is connected
+  if nw:mean-path-length = false [ report-error 1 report false ]
+  
+  ; checks if the weights of all in-influence links + self-weight
+  ; for each node is equal to 1 
+  if not check-weights [ report false ]
+  
+  report true
+  
+end
+
+to-report check-weights
+  ask turtles[
+    let in-weight-sum get-in-neighbour-weights
+    set in-weight-sum (in-weight-sum + self-weight)
+    ;type "check-weights: agent " type [who] of self type ": " type in-weight-sum print ""  
+    if in-weight-sum != 1[
+      ;type "Warning --> check-weights: agent " type [who] of self type ": " type in-weight-sum type ". should be 1." print "" 
+      report-error 2
+      report false
+    ]
     
-  ; validate simulation options to avoid inconsistencies
-  validate-simulation-options
-  
-  reset-ticks
-  
+    ;type "sum-in-weights: agent " type [who] of self type ": " type get-in-neighbour-weights print ""
+    ;type "self-weight: agent " type [who] of self type ": " type self-weight print "" 
+  ]
+  report true
 end
 
 to go
   
-  ifelse (is-vary-agents?) [
-    if simulate-varying-agents [ stop ]
-  ]
+  ifelse (is-vary-agents?) [ if simulate-varying-agents [ stop ] ]
   [
-    ifelse (is-vary-eps?) [ 
-      if simulate-varying-epsilon [ stop ]
-    ] 
+    ifelse (is-vary-eps?) [ if simulate-varying-epsilon [ stop ] ] 
     [ 
       if simulate [ stop ]
     ]
@@ -121,10 +146,20 @@ to update-self-val
   ;type "agent " type [who] of self type " has self-val: " type [self-val] of self print ""
 end
 
-to validate-simulation-options
-  set eps min-eps
-  set epsilon eps
-  set agt min-agents
-  set number-of-agents agt
+to-report validate-simulation-options
+  
+  if (is-vary-agents?) [
+    set agt min-agents
+    set number-of-agents agt
+    edit-group nobody
+  ]
+  
+  if (is-vary-eps?) [
+    set eps min-eps
+    set epsilon eps
+  ]
+  
+  report true
+  
 end
 

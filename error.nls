@@ -1,0 +1,24 @@
+;----------------------------------------------------------------------------;
+;                                                                            ;
+;    NetworkConsensus - ERROR MODULE                                         ;
+;                                                                            ;
+;    Authors:                                                                ;
+;        Leonardo Mizoguti                                                   ;
+;        Man Hue Tran Diep                                                   ;
+;        Thierry Fosso Kenne                                                 ;
+;                                                                            ;
+;    Coordinator:                                                            ;
+;        Ada Diaconescu                                                      ;
+;                                                                            ;
+;----------------------------------------------------------------------------;
+
+to report-error [error-code]
+  
+  let message ""
+  
+  ifelse error-code = 1 [ set message "[ERROR 1] The network graph is not connected" ]
+  [ if error-code = 2 [ set message "[ERROR 2] Incorrect influence-link weights" ] ]
+  
+  user-message message
+  
+end

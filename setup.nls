@@ -18,8 +18,15 @@
 ;  the whole network.                                                        ;
 ;----------------------------------------------------------------------------;
 
-; This procedure responds to the "Edit group" button and creates/modifies a given group 
-; identified by group-id according to the topology parameters
+;----------------------------------------------------------------------------;
+;    Topology setup                                                          ;
+;----------------------------------------------------------------------------;
+
+; Responds to the "Edit group" button and creates/modifies a given group 
+; identified by group-id according to the topology parameters.
+; Adjust the network according to the network-type? field if no adjacency-matrix
+; is provided.
+
 to edit-group [adjacency-matrix]
   
   set p 2
@@ -34,17 +41,21 @@ to edit-group [adjacency-matrix]
   adjust-network adjacency-matrix
   
   ; adjust the agent values according to their type
-  adjust-agent-values
+  adjust-agent-type-properties
   
   ; set weights for all nodes and links
-  setup-weight-net
+  setup-influence-links-weight
   
   ; display labels if necessary
   display-labels
   
+  ; block simulations making re-validation necessary
   clear-ticks
   
 end
+
+; Sets the default shape of turtles and creates new or kills unnecessary
+; turtles depending on the group-id and the given number of agents.
 
 to adjust-agents
   
@@ -65,25 +76,37 @@ to adjust-agents
   
 end
 
-to adjust-agent-values
+; Sets nodes properties depending on their type.
+
+to adjust-agent-type-properties
   ask turtles with [ agent-type = 0 ] [ set color blue set self-val other's-value ]
   ask turtles with [ agent-type = 1 ] [ set color red set self-val head's-value ]
 end
 
+; Move nodes to different groups, set their position and create all
+; necessary links according to the network-type or to the adjacency matrix
+; if it is provided.
+
 to adjust-network [adjacency-matrix]
   
+  ; Select nodes belonging to the given group
   let group-nodes turtles with [my-group = group-id]
   
+  ; Clear all existing links and reset nodes' type
   ask group-nodes [
     ask my-in-influence-links [die]
     ask my-out-influence-links [die] 
     set agent-type 0
   ]
   
+  ; Position nodes in a cirle
   layout-circle (sort group-nodes) 5
   
-  setup-central-agent group-nodes
+  ; Set group's central agent
+  let centralAgent setup-central-agent group-nodes
   
+  ; Create links from adjacency matrix if it is provided,
+  ; or according to the network-type if not.
   ifelse adjacency-matrix != nobody [
     setup-custom-matrix-network group-nodes adjacency-matrix
   ]
@@ -106,160 +129,101 @@ to adjust-network [adjacency-matrix]
     ]]]]]
   ]
   
-  move-to-agent group-nodes first sort group-nodes
+  ; Moves the group
+  move-to-agent group-nodes centralAgent
   
 end
 
-to validate-network
-  
-  ; checks if the weights of all in-influence links + self-weight
-  ; for each node is equal to 1 
-  check-weights
-  
-end
+;----------------------------------------------------------------------------;
+;    Links setup                                                             ;
+;----------------------------------------------------------------------------;
 
+; Add a single edge from a node to another
 
-
-;add a single edge from a node to another
 to add-edge [t_from t_to]
   ask turtle t_from [ create-influence-link-to turtle t_to ]
   ask turtle t_to [ create-influence-link-to  turtle t_from ]
 end 
-;add multiples edges from list of nodes to another list of nodes
+
+; Add multiples edges from list of nodes to another list of nodes
+
 to add-edges [T_from T_to]
   (foreach T_from T_to
     [ add-edge ?1 ?2 ])
 end
 
-; add edges from one to multiple
+; Add edges from one to multiple
+
 to add-edges-from [t_from T_to]
   foreach T_to [add-edge t_from ?]
 end 
 
-;delete a single edge
+; Delete a single edge
+
 to delete-edge [t_from t_to]
   ask turtle t_from [ ask out-influence-link-to turtle t_to [die]]
   ask turtle t_to [ ask out-influence-link-to turtle t_from [die]]
 end 
-;delete multiples edges from list of nodes to another list of nodes
+
+; Delete multiples edges from list of nodes to another list of nodes
+
 to delete-edges [T_from T_to]
   (foreach T_from T_to
     [ delete-edge ?1 ?2 ])
 end
-;delete edges from one to multiple
+
+; Delete edges from one to multiple
+
 to delete-edges-from [t_from T_to]
   foreach T_to [delete-edge t_from ?]
 end
 
-to-report internal-group-id
-    let turtle-group my-group
-    report position self sort turtles with [ my-group = turtle-group ]
+;----------------------------------------------------------------------------;
+;    Regions setup                                                           ;
+;----------------------------------------------------------------------------;
+
+; Setup patches to distribute different groups
+
+to setup-region
+  
+  ask patches [set belongs-to nobody]
+
 end
 
-to-report turtle-with-group-and-internal-id[turtle-group-id internal-id]
-    report item internal-id sort turtles with [my-group = turtle-group-id ]
-end
+;----------------------------------------------------------------------------;
+;    Weights setup                                                           ;
+;----------------------------------------------------------------------------;
 
-to display-labels
-  ask turtles [ set label "" ]
-  if show-self-value [
-    ask turtles [ set label round self-val ]
-  ]
-end
+; Calculates the weight of each node and link in the network
 
-to setup-weight-net
+to setup-influence-links-weight
+  
   let head-weight (1 - epsilon)
-  let own-weight (1 * epsilon)
-  let neighbour-weight (1 * epsilon)
+  let others-weight epsilon
+ 
   let norm 0
-  let number-of-neighbours 0
-  ask turtles[
-    set number-of-neighbours count(my-in-influence-links) 
-    ifelse (in-influence-link-neighbor? turtle 0)
-       [
-         set norm (head-weight + own-weight + (neighbour-weight * (number-of-neighbours - 1 )))
-         foreach sort my-in-influence-links [ ask ? [set weight precision (neighbour-weight / norm) 100 ] ]
-         ask  turtle who [ ask in-influence-link-from turtle 0 [set weight precision (head-weight / norm) 100 ] ]                
-       ]
-       [
-         set norm (own-weight + (neighbour-weight * number-of-neighbours))
-         foreach sort my-in-influence-links [ ask ? [set weight precision (neighbour-weight / norm) 100] ]
-       ]
-       
+  let count-of-neighbors 0
+  
+  ask turtles with [ agent-type = 1 ] [
+    set count-of-neighbors count my-in-influence-links
+    ask my-in-influence-links [ set weight precision (epsilon / count-of-neighbors ) 100 ]
   ]
-  ask turtle 0 [ 
-    set number-of-neighbours count(my-in-influence-links)
-    foreach sort my-in-influence-links [ ask ? [set weight precision (epsilon / number-of-neighbours ) 100] ] 
+  
+  ask turtles with [ agent-type = 0 ] [
+    let this-turtle self
+    set count-of-neighbors count my-in-influence-links
+    let links-from-head my-in-influence-links with [ [agent-type] of end1 = 1 ]
+    let links-from-others my-in-influence-links with [ [agent-type] of end1 = 0 ]
+    set norm (head-weight * count links-from-head) + (others-weight * count links-from-others) + others-weight
+    ask links-from-head [ set weight precision (head-weight / norm) 100 ]
+    ask links-from-others [ set weight precision (others-weight / norm) 100 ]
   ]
   
   ask turtles [ 
     set self-weight (1 - get-in-neighbour-weights)
-    show self-weight
-    ]
-end
-
-to setup-region
- ask patches [set belongs-to nobody]
-
-end
-
-; turtle 0: 0.9 self; 0.1 influence from all others
-; others: 0.9 from turtle0; 0.1/neighbours from neighbours; ~0.1 self 
-to setup-absolute-weight-for-full-net
-  let neigh-influence (epsilon / (total-agents - 1))
-  ask turtles [ foreach sort my-out-influence-links [ ask ? [set weight neigh-influence] ]]
-  ;ask turtles [show get-in-neighbour-weights]
-
-  ;turtle 0 --> out
-  ask turtle 0 [ foreach sort my-out-influence-links [ ask ? [set weight (1 - epsilon)] ] ]
-  ;turtle 0 --> in
-  ask turtle 0 [ foreach sort my-in-influence-links [ ask ? [set weight precision (epsilon / (total-agents - 1)) 100] ] ]
-  ask turtle 0 [ set self-weight (1 - epsilon)]
-
-  ask turtles  [ set self-weight (1 - get-in-neighbour-weights) ]
+  ]
   
-  ;print weights
-  print-weights
-  
-   
-end
-
-;prints weights of turtle 0 and turtle 1 (from neighbour 2)
-to print-weights
-  
-  ask turtle 1 [
-    let neigh-weight [weight] of in-influence-link-from turtle 2
-    ;type "all in weights: " show get-in-neighbour-weights
-    type "agent 1: weight from agent 0: " show  [weight] of in-influence-link-from turtle 0
-    ;type "agent 1: total weight from in neighbours: " show ((count neighbors) * neigh-weight)
-    type "agent 1: total weight from in neighbours: " show (get-in-neighbour-weights - ([weight] of in-influence-link-from turtle 0))
-    type "agent 1: self weight: " show self-weight
-  ]
-  ask turtle 0 [
-    type "agent 0: all in neighs weights: " show get-in-neighbour-weights
-    type "agent 0: self-weight: " show self-weight
-  ]
 end
 
 
-to check-weights
-  ask turtles[
-    let in-weight-sum get-in-neighbour-weights
-    set in-weight-sum (in-weight-sum + self-weight)
-    ;type "check-weights: agent " type [who] of self type ": " type in-weight-sum print ""  
-    if in-weight-sum != 1[
-      type "Warning --> check-weights: agent " type [who] of self type ": " type in-weight-sum type ". should be 1." print "" 
-    ]
-    
-    ;type "sum-in-weights: agent " type [who] of self type ": " type get-in-neighbour-weights print ""
-    ;type "self-weight: agent " type [who] of self type ": " type self-weight print "" 
-  ]
-end
 
-to-report get-in-neighbour-weights
-  let in-weight-sum 0
-  foreach sort my-in-influence-links[
-       set in-weight-sum (in-weight-sum + [weight] of ?)  
-  ]
-  report in-weight-sum 
-end

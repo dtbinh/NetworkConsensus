@@ -42,12 +42,15 @@ to setup-random-network [setOfAgents]
   ask setOfAgents [
       ;; we use "self > myself" here so that each pair of turtles
       ;; is only considered once and to avoid link to itself
-      create-influence-links-to setOfAgents with [self > myself and
-        random-float 1.0 < random-probability]
-      create-influence-links-from setOfAgents with [self > myself and
-        random-float 1.0 < random-probability]
+      create-influence-links-to setOfAgents with [self > myself and random-float 1.0 < random-probability]
+      ;create-influence-links-from setOfAgents with [self > myself and random-float 1.0 < random-probability]
    ]
-
+  
+  ask influence-links [
+    let source-turtle end1
+    ask end2 [ create-influence-link-to source-turtle ]
+  ]
+ 
 end
 
 to setup-ring-network [ringSet] 
@@ -166,75 +169,38 @@ to setup-scale-free-network
     ]
   ]
 
-  setup-weight-net
+  setup-influence-links-weight
 end
 
-;----------------------------------------------------------------------------;
-;    Auxiliary Procedures                                                    ;
-;----------------------------------------------------------------------------;
-
-to setup-custom-agents [nbOfAgents]
-  ;; set shapes
-  set-default-shape turtles "circle"
-  ;; create agents
-  create-turtles nbOfAgents [ set color blue ]
-  ;; all turtles are initially ungrouped
-  ask turtles [ set my-group -1 ]
-end
-
-to setup-central-agent [ agent-list ]
-  let centralAgent first sort agent-list
-  ask centralAgent [ set group-size count agent-list]
-  ask centralAgent [ 
-    move-to one-of patches with [not any? other patches in-radius 5 with [belongs-to != nobody]] 
-    set group patches in-radius group-size
-    ask group [set belongs-to myself]
-    set agent-type 1
-  ]
-end
-
-to move-central-agent [centralAgent]
-  ask centralAgent [ 
-    move-to one-of patches with [not any? other patches in-radius 5 with [belongs-to != nobody or belongs-to = centralAgent]] 
-    set group patches in-radius group-size
-    ask group [set belongs-to myself]
-  ]
-end
-
-to move-to-agent [setOfAgents centralAgent]
-  type "center node: " print centralAgent
-  let delta 1
-  foreach sort setOfAgents [
-    if ( ? != centralAgent ) [
-      type "move..." print ?
-      ask ? [
-        let x-cor xcor + [xcor] of centralAgent
-        let y-cor ycor + [ycor] of centralAgent
-        while [x-cor > max-pxcor] [set x-cor x-cor - delta]
-        while [x-cor < min-pxcor] [set x-cor x-cor + delta]
-        while [y-cor > max-pycor] [set y-cor y-cor - delta]
-        while [y-cor < min-pycor] [set y-cor y-cor + delta]
-        setxy x-cor y-cor
-        ;setxy (xcor + [xcor] of centralAgent) (ycor + [ycor] of centralAgent)
-      ]
-      ;move-to centralAgent
-      ;move-to one-of patches with [not any? turtles-here and belongs-to = centralAgent]
+;; connects the two nodes
+to make-edge [node1 node2]
+  ask node1 [
+    ifelse (node1 = node2) 
+    [
+      show "error: self-loop attempted"
     ]
+    [
+      create-influence-link-to node2
+      create-influence-link-from node2
+      ;; position the new node near its partner
+      ;setxy ([xcor] of node2) ([ycor] of node2)
+      move-to node1
+      fd 8
+      set degrees lput node1 degrees
+      set degrees lput node2 degrees
+     ]
   ]
 end
 
-;to-report get-home ;; turtle procedure
-;  ;; calculate the minimum length of each side of our grid
-;  let side ceiling (sqrt (max [my-group] of turtles + 1))
-;
-;  report patch
-;           ;; compute the x coordinate
-;           (round ((world-width / side) * (my-group mod side)
-;             + min-pxcor + int (world-width / (side * 2))))
-;           ;; compute the y coordinate
-;           (round ((world-height / side) * int (my-group / side)
-;             + min-pycor + int (world-height / (side * 2))))
-;end
+;; used for creating a new node
+to make-node
+  crt 1
+  [
+    set color blue
+    set self-val other's-value
+    set new-node self ;; set the new-node global
+  ]
+end
 
 to-report find-partner [node1]
   ;; set a local variable called ispref that
@@ -281,35 +247,79 @@ to-report find-partner [node1]
   report partner
 end
 
-;; used for creating a new node
-to make-node
-  crt 1
-  [
-    set color blue
-    set self-val other's-value
-    set new-node self ;; set the new-node global
+;----------------------------------------------------------------------------;
+;    Auxiliary Procedures                                                    ;
+;----------------------------------------------------------------------------;
+
+to-report setup-central-agent [ agent-list ]
+  let centralAgent first sort agent-list
+  ask centralAgent [ set group-size count agent-list]
+  ask centralAgent [ 
+    move-to one-of patches with [not any? other patches in-radius 5 with [belongs-to != nobody]] 
+    set group patches in-radius group-size
+    ask group [set belongs-to myself]
+    set agent-type 1
+  ]
+  report centralAgent
+end
+
+to setup-custom-agents [nbOfAgents]
+  ;; set shapes
+  set-default-shape turtles "circle"
+  ;; create agents
+  create-turtles nbOfAgents [ set color blue ]
+  ;; all turtles are initially ungrouped
+  ask turtles [ set my-group -1 ]
+end
+
+to move-central-agent [centralAgent]
+  ask centralAgent [ 
+    move-to one-of patches with [not any? other patches in-radius 5 with [belongs-to != nobody or belongs-to = centralAgent]] 
+    set group patches in-radius group-size
+    ask group [set belongs-to myself]
   ]
 end
 
-;; connects the two nodes
-to make-edge [node1 node2]
-  ask node1 [
-    ifelse (node1 = node2) 
-    [
-      show "error: self-loop attempted"
+to move-to-agent [setOfAgents centralAgent]
+  type "center node: " print centralAgent
+  let delta 1
+  foreach sort setOfAgents [
+    if ( ? != centralAgent ) [
+      type "move..." print ?
+      ask ? [
+        let x-cor xcor + [xcor] of centralAgent
+        let y-cor ycor + [ycor] of centralAgent
+        while [x-cor > max-pxcor] [set x-cor x-cor - delta]
+        while [x-cor < min-pxcor] [set x-cor x-cor + delta]
+        while [y-cor > max-pycor] [set y-cor y-cor - delta]
+        while [y-cor < min-pycor] [set y-cor y-cor + delta]
+        setxy x-cor y-cor
+        ;setxy (xcor + [xcor] of centralAgent) (ycor + [ycor] of centralAgent)
+      ]
+      ;move-to centralAgent
+      ;move-to one-of patches with [not any? turtles-here and belongs-to = centralAgent]
     ]
-    [
-      create-influence-link-to node2
-      create-influence-link-from node2
-      ;; position the new node near its partner
-      ;setxy ([xcor] of node2) ([ycor] of node2)
-      move-to node1
-      fd 8
-      set degrees lput node1 degrees
-      set degrees lput node2 degrees
-     ]
   ]
 end
+
+;to-report get-home ;; turtle procedure
+;  ;; calculate the minimum length of each side of our grid
+;  let side ceiling (sqrt (max [my-group] of turtles + 1))
+;
+;  report patch
+;           ;; compute the x coordinate
+;           (round ((world-width / side) * (my-group mod side)
+;             + min-pxcor + int (world-width / (side * 2))))
+;           ;; compute the y coordinate
+;           (round ((world-height / side) * int (my-group / side)
+;             + min-pycor + int (world-height / (side * 2))))
+;end
+
+
+
+
+
+
 
 
 

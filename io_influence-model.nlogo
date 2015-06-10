@@ -12,6 +12,10 @@
 ;                                                                            ;
 ;----------------------------------------------------------------------------;
 
+; Extensions
+extensions [ nw ]
+
+; Module include
 __includes [
 
   ; GLOBAL DEFINITIONS MODULE
@@ -28,6 +32,9 @@ __includes [
 
   ; FILE I/O MODULE
   "file-io.nls"
+  
+  ; ERROR MODULE
+  "error.nls"
 
 ]
 @#$#@#$#@
@@ -134,7 +141,7 @@ INPUTBOX
 125
 375
 number-of-agents
-30
+10
 1
 0
 Number
@@ -185,7 +192,7 @@ SWITCH
 293
 is-vary-eps?
 is-vary-eps?
-0
+1
 1
 -1000
 
@@ -197,7 +204,7 @@ CHOOSER
 network-type?
 network-type?
 "Radial Network" "Full Network" "Ring Network" "Custom Wheel" "Random Network" "Scale-free Network"
-1
+4
 
 INPUTBOX
 10
@@ -205,7 +212,7 @@ INPUTBOX
 155
 475
 total-spokes
-3
+1
 1
 0
 Number
@@ -216,7 +223,7 @@ INPUTBOX
 320
 475
 number-of-neighbors
-6
+2
 1
 0
 Number
@@ -230,8 +237,8 @@ random-probability
 random-probability
 0
 1
-0.1
-0.1
+0.69
+0.01
 1
 NIL
 HORIZONTAL
@@ -474,7 +481,7 @@ INPUTBOX
 88
 270
 total-groups
-1
+6
 1
 0
 Number
@@ -536,7 +543,7 @@ INPUTBOX
 495
 360
 max-eps
-0.3
+0.7
 1
 0
 Number
@@ -558,7 +565,7 @@ INPUTBOX
 495
 500
 max-agents
-30
+60
 1
 0
 Number
@@ -570,7 +577,7 @@ SWITCH
 428
 is-vary-agents?
 is-vary-agents?
-0
+1
 1
 -1000
 
@@ -636,7 +643,7 @@ INPUTBOX
 575
 360
 step-eps
-0.1
+0.2
 1
 0
 Number
@@ -647,7 +654,7 @@ INPUTBOX
 575
 500
 step-agents
-10
+25
 1
 0
 Number
