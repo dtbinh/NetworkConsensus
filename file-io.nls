@@ -1,12 +1,24 @@
-;-----------------------------------------------------------------------------
-;---         FILE I/O MODULE                                               ---
-;-----------------------------------------------------------------------------
+;----------------------------------------------------------------------------;
+;                                                                            ;
+;    NetworkConsensus - FILE I/O MODULE                                      ;
+;                                                                            ;
+;    Authors:                                                                ;
+;        Leonardo Mizoguti                                                   ;
+;        Man Hue Tran Diep                                                   ;
+;        Thierry Fosso Kenne                                                 ;
+;                                                                            ;
+;    Coordinator:                                                            ;
+;        Ada Diaconescu                                                      ;
+;                                                                            ;
+;----------------------------------------------------------------------------;
+
 
 ;loads a topology from a file
 to load-file [file-name]
   
   ; reset model
   clear-all
+  setup-region
   set total-agents 0
   
   ; opens file
@@ -23,31 +35,18 @@ to load-file [file-name]
   set total-groups file-read
   
   ; group iteration
-  set group-id 0
+  set group-id 1
   repeat total-groups [
-      let adjacency-matrix file-read
-      set number-of-agents length adjacency-matrix
+    
+    let adjacency-matrix file-read
+    set number-of-agents length adjacency-matrix
          
-      create-turtles number-of-agents [ set my-group group-id set color blue set complementary-link false ]
-      let row 0
-      let column 0
-      while [row < number-of-agents] 
-      [
-          set column row + 1
-          while [column < number-of-agents]
-          [
-              if ((item column (item row adjacency-matrix)) = 1)
-              [
-                  ask turtle (total-agents + row) [ create-influence-link-to turtle (total-agents + column) ]
-                  ask turtle (total-agents + row) [ create-influence-link-from turtle (total-agents + column) ]
-              ]
-              set column column + 1
-          ]
-          set row row + 1  
-      ]
-      set total-agents total-agents + number-of-agents
-      set group-id group-id + 1
+    edit-group adjacency-matrix
+      
+    set group-id group-id + 1
   ]
+  
+  set group-id 1
   
   ; complementary links
   while [not file-at-end?] [
@@ -59,6 +58,17 @@ to load-file [file-name]
   ]
   
   file-close
+  
+  ; adjust the agent values according to their type
+  adjust-agent-values
+  
+  setup-weight-net
+  
+  ; validate network to avoid inconsistencies   
+  validate-network
+  
+  ; display labels if necessary
+  display-labels
     
 end
 
@@ -100,23 +110,23 @@ to save-file [file-name]
        file-print "["
        
        ; retrieve group
-       let group sort turtles with [my-group = group-id]
+       let turtle-group sort turtles with [my-group = group-id]
        
        ; write adjacency matrix
        let row 0
-       while [row < length group] [
+       while [row < length turtle-group] [
            file-type " ["
            let column 0
-           while [column < length group] [
+           while [column < length turtle-group] [
              ifelse (row != column)
              [
-                 let node-link [in-influence-link-from item column group] of item row group
+                 let node-link [in-influence-link-from item column turtle-group] of item row turtle-group
                  file-type ifelse-value (node-link = nobody) [ "0" ] [ "1" ]  
              ] 
              [
                  file-type "0" 
              ]
-             file-type ifelse-value (column != length group - 1) [ " " ][ "]" ]
+             file-type ifelse-value (column != length turtle-group - 1) [ " " ][ "]" ]
              set column column + 1
            ]
            file-print ""

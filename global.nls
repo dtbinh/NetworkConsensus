@@ -1,8 +1,21 @@
-;-----------------------------------------------------------------------------
-;---         GLOBAL DEFINITIONS                                            ---
-;-----------------------------------------------------------------------------
+;----------------------------------------------------------------------------;
+;                                                                            ;
+;    NetworkConsensus - GLOBAL DEFINITIONS                                   ;
+;                                                                            ;
+;    Authors:                                                                ;
+;        Leonardo Mizoguti                                                   ;
+;        Man Hue Tran Diep                                                   ;
+;        Thierry Fosso Kenne                                                 ;
+;                                                                            ;
+;    Coordinator:                                                            ;
+;        Ada Diaconescu                                                      ;
+;                                                                            ;
+;----------------------------------------------------------------------------;
+
+
 
 directed-link-breed [influence-links influence-link]
+
 
 turtles-own [
   
@@ -21,6 +34,8 @@ turtles-own [
   
   ; a number representing the group this turtle is a member of, or -1 if this turtle is not in a group.
   my-group
+  group
+  group-size
   
   ; a boolean that indicates if the node is connected to another node outside of its own group
   complementary-link
@@ -30,14 +45,21 @@ turtles-own [
   
 ] ; a node's self value, aggregate in value, out value and social capital value 
 
-links-own [ 
-  
-  ; the strength of the influence of the from (out) agent on the to (in) agent -- future: can be calculated as a difference between the strengths of the respective agents
-  weight 
-  
- ]  
+;; only use self-val in-vals self-weight
+;; where is my-out-influence-links (builtin macro!) --> directed-link-bread
+links-own [ weight ]  ; the strength of the influence of the from (out) agent on the to (in) agent -- future: can be calculated as a difference between the strengths of the respective agents
 
-; global variables
-globals [p total-agents] 
+patches-own [ belongs-to  ]
 
-patches-own [region-group]
+globals [
+  p
+  new-node  ;; the last node we created
+  degrees   ;; this is an array that contains each node in
+            ;; proportion to its degree
+  group-ids 
+  total-agents
+  
+  ; simulation variables
+  eps
+  agt
+] ; global variables

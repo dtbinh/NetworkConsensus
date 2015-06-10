@@ -1,55 +1,55 @@
-to reset-simulation
-  
-  stop
-  
-  reset-ticks
-  
-  adjust-agent-values
-  
-end
+;----------------------------------------------------------------------------;
+;                                                                            ;
+;    NetworkConsensus - SIMULATION MODULE                                    ;
+;                                                                            ;
+;    Authors:                                                                ;
+;        Leonardo Mizoguti                                                   ;
+;        Man Hue Tran Diep                                                   ;
+;        Thierry Fosso Kenne                                                 ;
+;                                                                            ;
+;    Coordinator:                                                            ;
+;        Ada Diaconescu                                                      ;
+;                                                                            ;
+;----------------------------------------------------------------------------;
 
-to go-varyAgents
-  let nbAgents 0
-  let increment 10
-  let max-agents 100
+to-report simulate-varying-agents
   
-  while[nbAgents < max-agents][
-    set nbAgents (nbAgents + increment)
-    set total-agents nbAgents
-    type "nombre d'agents: " print nbAgents
-    ;;call to setup network and agents
-    ;setup
-    reset-ticks
-    ;;select to go-for-once-eps or go-vary-eps
-    ifelse (is-vary-eps?)
-       [go-varyEpsilon]
-       [go-for-one-epsilon]
+  let simulation-result ifelse-value (is-vary-eps?) [simulate-varying-epsilon][simulate]
+  
+  if simulation-result [
+      edit-group nobody
+      if (is-vary-eps?) [ set eps min-eps ]
+      reset-ticks
+      set agt (agt + step-agents)
+      if agt > max-agents [ report true ]
+      set number-of-agents agt
   ]
-  stop
+  report false
+
 end
 
-to go-varyEpsilon
-  let eps 0
-  let delta 0.1
-  let max-epsilon 1.0;;epsilon
-  while[eps < max-epsilon][
-    set eps precision (eps + delta) p
-    set epsilon eps
+to-report simulate-varying-epsilon
+  
+  if simulate [
+    setup-weight-net
+    reset-ticks
     adjust-agent-values
-    ;setup network and weights
-    adjust-network
-    reset-ticks
-    go-for-one-epsilon
+    set eps precision (eps + step-eps) ((-1) * floor(log step-eps 10))
+    if eps > max-eps [ report true ]
+    set epsilon eps
   ]
-  stop
+  report false
+  
 end
 
-to go-for-one-epsilon
+to-report simulate
   
-  let convergence 1 ; any value bigger than the onvergence-factor
-  
-  while[convergence >= convergence-factor][
-    type "at ticks: " type ticks print ": " ask turtle 0 [type "self-val of a0: " show self-val] ask turtle 1 [type "self-val of a1: " show self-val]
+  let convergence (([self-val] of turtle 0) - ([self-val] of turtle 1))
+ 
+  ;eval convergence and decide whether or not to go on
+  ifelse convergence >= convergence-precision 
+  [
+    ;type "at ticks: " type ticks print ": " ask turtle 0 [type "self-val of a0: " show self-val] ask turtle 1 [type "self-val of a1: " show self-val]
     
     ask turtles [ 
       update-in-vals  
@@ -58,25 +58,46 @@ to go-for-one-epsilon
       update-self-val
     ]
     display-labels
-    
-    ;eval convergence and decide whether or not to go on
-    set convergence (([self-val] of turtle 0) - ([self-val] of turtle 1))
+   
     tick
+    
+    report false
+    
   ]
-  ifelse network-type? = "Random Network" [
-    print-results-for-random
+  [
+    print-results 
+    ;type "end of test for epsilon: " print epsilon
+    report true 
   ]
-  [ print-results ]
-  type "end of test for epsilon: " print epsilon
-  stop 
+ 
+end
+
+to validate-simulation
+  
+  ; validate network to avoid inconsistencies   
+  validate-network
+    
+  ; validate simulation options to avoid inconsistencies
+  validate-simulation-options
+  
+  reset-ticks
+  
 end
 
 to go
-  ;;select to go-for-once-eps or go-vary-eps
-  ifelse (is-vary-eps?)
-       [go-varyEpsilon]
-       [go-for-one-epsilon]
-  stop
+  
+  ifelse (is-vary-agents?) [
+    if simulate-varying-agents [ stop ]
+  ]
+  [
+    ifelse (is-vary-eps?) [ 
+      if simulate-varying-epsilon [ stop ]
+    ] 
+    [ 
+      if simulate [ stop ]
+    ]
+  ]
+ 
 end
 
 to update-in-vals 
@@ -98,5 +119,12 @@ to update-self-val
   let old-self-val self-val
   set self-val (in-vals + (old-self-val * self-weight)) 
   ;type "agent " type [who] of self type " has self-val: " type [self-val] of self print ""
+end
+
+to validate-simulation-options
+  set eps min-eps
+  set epsilon eps
+  set agt min-agents
+  set number-of-agents agt
 end
 

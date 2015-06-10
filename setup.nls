@@ -1,15 +1,16 @@
 ;----------------------------------------------------------------------------;
-;
-;    NetworkConsensus - SETUP MODULE                                                  
-;    
-;    Authors:
-;        Leonardo Mizoguti
-;        Man Hue Tran Diep
-;        Thierry Fosso Kenne
-;
-;    Coordinator: Ada Diaconescu
-;
-;-----------------------------------------------------------------------------
+;                                                                            ;
+;    NetworkConsensus - SETUP MODULE                                         ;
+;                                                                            ;
+;    Authors:                                                                ;
+;        Leonardo Mizoguti                                                   ;
+;        Man Hue Tran Diep                                                   ;
+;        Thierry Fosso Kenne                                                 ;
+;                                                                            ;
+;    Coordinator:                                                            ;
+;        Ada Diaconescu                                                      ;
+;                                                                            ;
+;----------------------------------------------------------------------------;
 
 ;----------------------------------------------------------------------------;
 ;  This module is responsible for retrieving the topologies' parameters      ;
@@ -19,20 +20,30 @@
 
 ; This procedure responds to the "Edit group" button and creates/modifies a given group 
 ; identified by group-id according to the topology parameters
-to edit-group
+to edit-group [adjacency-matrix]
+  
+  set p 2
+  
+  ;setup patches
+  setup-region
   
   ; adjust agents by creating turtles or killing them if necessary  
   adjust-agents
   
   ; adjust network by creating the right links
-  adjust-network
+  adjust-network adjacency-matrix
   
-  ; validate network to avoid inconsistencies   
-  validate-network
+  ; adjust the agent values according to their type
+  adjust-agent-values
+  
+  ; set weights for all nodes and links
+  setup-weight-net
   
   ; display labels if necessary
   display-labels
-
+  
+  clear-ticks
+  
 end
 
 to adjust-agents
@@ -52,9 +63,6 @@ to adjust-agents
     ask max-n-of (number-of-turtles-in-group - number-of-agents) turtles with [ my-group = group-id ] [who] [ die ]
   ]
   
-  ; adjust the agent values according to their type
-  adjust-agent-values
-  
 end
 
 to adjust-agent-values
@@ -62,26 +70,43 @@ to adjust-agent-values
   ask turtles with [ agent-type = 1 ] [ set color red set self-val head's-value ]
 end
 
-to adjust-network
+to adjust-network [adjacency-matrix]
   
-  ; setup network
-  if network-type? = "Radial Network" [
-    setup-radial-network
+  let group-nodes turtles with [my-group = group-id]
+  
+  ask group-nodes [
+    ask my-in-influence-links [die]
+    ask my-out-influence-links [die] 
+    set agent-type 0
   ]
-  if network-type? = "Full Network" [
-    setup-full-network
+  
+  layout-circle (sort group-nodes) 5
+  
+  setup-central-agent group-nodes
+  
+  ifelse adjacency-matrix != nobody [
+    setup-custom-matrix-network group-nodes adjacency-matrix
   ]
-  if network-type? = "Ring Network" [
-    setup-ring-network
+  [
+    ; setup network
+    ifelse network-type? = "Radial Network" [
+      setup-radial-network group-nodes
+    ][
+    ifelse network-type? = "Full Network" [
+      setup-full-network group-nodes
+    ][
+    ifelse network-type? = "Ring Network" [
+      setup-ring-network group-nodes
+    ][
+    ifelse network-type? = "Custom Wheel" [
+      setup-custom-wheel-network group-nodes
+    ][
+    if network-type? = "Random Network" [
+      setup-random-network group-nodes
+    ]]]]]
   ]
-  if network-type? = "Ring Network Less Spokes" [
-    ifelse (total-spokes >= total-agents)
-       [user-message "Number of spokes must be less than total-agents" stop]
-       [setup-ring-network-less-spokes]
-  ]
-  if network-type? = "Random Network" [
-    setup-random-network
-  ]
+  
+  move-to-agent group-nodes first sort group-nodes
   
 end
 
@@ -127,8 +152,8 @@ to delete-edges-from [t_from T_to]
 end
 
 to-report internal-group-id
-    let group my-group
-    report position self sort turtles with [ my-group = group ]
+    let turtle-group my-group
+    report position self sort turtles with [ my-group = turtle-group ]
 end
 
 to-report turtle-with-group-and-internal-id[turtle-group-id internal-id]
@@ -140,4 +165,101 @@ to display-labels
   if show-self-value [
     ask turtles [ set label round self-val ]
   ]
+end
+
+to setup-weight-net
+  let head-weight (1 - epsilon)
+  let own-weight (1 * epsilon)
+  let neighbour-weight (1 * epsilon)
+  let norm 0
+  let number-of-neighbours 0
+  ask turtles[
+    set number-of-neighbours count(my-in-influence-links) 
+    ifelse (in-influence-link-neighbor? turtle 0)
+       [
+         set norm (head-weight + own-weight + (neighbour-weight * (number-of-neighbours - 1 )))
+         foreach sort my-in-influence-links [ ask ? [set weight precision (neighbour-weight / norm) 100 ] ]
+         ask  turtle who [ ask in-influence-link-from turtle 0 [set weight precision (head-weight / norm) 100 ] ]                
+       ]
+       [
+         set norm (own-weight + (neighbour-weight * number-of-neighbours))
+         foreach sort my-in-influence-links [ ask ? [set weight precision (neighbour-weight / norm) 100] ]
+       ]
+       
+  ]
+  ask turtle 0 [ 
+    set number-of-neighbours count(my-in-influence-links)
+    foreach sort my-in-influence-links [ ask ? [set weight precision (epsilon / number-of-neighbours ) 100] ] 
+  ]
+  
+  ask turtles [ 
+    set self-weight (1 - get-in-neighbour-weights)
+    show self-weight
+    ]
+end
+
+to setup-region
+ ask patches [set belongs-to nobody]
+
+end
+
+; turtle 0: 0.9 self; 0.1 influence from all others
+; others: 0.9 from turtle0; 0.1/neighbours from neighbours; ~0.1 self 
+to setup-absolute-weight-for-full-net
+  let neigh-influence (epsilon / (total-agents - 1))
+  ask turtles [ foreach sort my-out-influence-links [ ask ? [set weight neigh-influence] ]]
+  ;ask turtles [show get-in-neighbour-weights]
+
+  ;turtle 0 --> out
+  ask turtle 0 [ foreach sort my-out-influence-links [ ask ? [set weight (1 - epsilon)] ] ]
+  ;turtle 0 --> in
+  ask turtle 0 [ foreach sort my-in-influence-links [ ask ? [set weight precision (epsilon / (total-agents - 1)) 100] ] ]
+  ask turtle 0 [ set self-weight (1 - epsilon)]
+
+  ask turtles  [ set self-weight (1 - get-in-neighbour-weights) ]
+  
+  ;print weights
+  print-weights
+  
+   
+end
+
+;prints weights of turtle 0 and turtle 1 (from neighbour 2)
+to print-weights
+  
+  ask turtle 1 [
+    let neigh-weight [weight] of in-influence-link-from turtle 2
+    ;type "all in weights: " show get-in-neighbour-weights
+    type "agent 1: weight from agent 0: " show  [weight] of in-influence-link-from turtle 0
+    ;type "agent 1: total weight from in neighbours: " show ((count neighbors) * neigh-weight)
+    type "agent 1: total weight from in neighbours: " show (get-in-neighbour-weights - ([weight] of in-influence-link-from turtle 0))
+    type "agent 1: self weight: " show self-weight
+  ]
+  ask turtle 0 [
+    type "agent 0: all in neighs weights: " show get-in-neighbour-weights
+    type "agent 0: self-weight: " show self-weight
+  ]
+end
+
+
+to check-weights
+  ask turtles[
+    let in-weight-sum get-in-neighbour-weights
+    set in-weight-sum (in-weight-sum + self-weight)
+    ;type "check-weights: agent " type [who] of self type ": " type in-weight-sum print ""  
+    if in-weight-sum != 1[
+      type "Warning --> check-weights: agent " type [who] of self type ": " type in-weight-sum type ". should be 1." print "" 
+    ]
+    
+    ;type "sum-in-weights: agent " type [who] of self type ": " type get-in-neighbour-weights print ""
+    ;type "self-weight: agent " type [who] of self type ": " type self-weight print "" 
+  ]
+end
+
+to-report get-in-neighbour-weights
+  let in-weight-sum 0
+  foreach sort my-in-influence-links[
+       set in-weight-sum (in-weight-sum + [weight] of ?)  
+  ]
+  report in-weight-sum 
 end
