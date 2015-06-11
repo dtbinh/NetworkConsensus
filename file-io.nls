@@ -19,7 +19,6 @@ to load-file [file-name]
   ; reset model
   clear-all
   setup-region
-  set total-agents 0
   
   ; opens file
   file-open file-name
@@ -53,8 +52,7 @@ to load-file [file-name]
       let clink file-read
       let first-turtle turtle-with-group-and-internal-id item 0 (item 0 clink) item 1 (item 0 clink)
       let second-turtle turtle-with-group-and-internal-id item 0 (item 1 clink) item 1 (item 1 clink)
-      ask first-turtle [ create-influence-link-to second-turtle set complementary-link true ]
-      ask second-turtle [ create-influence-link-to first-turtle set complementary-link true ]
+      ask first-turtle [ create-influence-link-to second-turtle ]
   ]
   
   file-close
@@ -99,7 +97,7 @@ to save-file [file-name]
   file-print ""
   
   ; group-id iteration
-  set group-id 0
+  set group-id 1
   repeat total-groups [
     
        ; print header
@@ -135,26 +133,16 @@ to save-file [file-name]
        set group-id group-id + 1
   ]
   
-  file-print "; Set complementary links"
- 
-  let past-turtles []
-  ask turtles with [ complementary-link ]
-  [
-      let clinks sort in-link-neighbors with [ complementary-link ]
-      
-      foreach clinks [
-          if (member? [who] of ? past-turtles)
-          [
-              file-type "[["
-              file-type word my-group " "
-              file-type internal-group-id
-              file-type "] ["
-              file-type word ([my-group] of ?) " "
-              file-type [internal-group-id] of ?
-              file-print "]]" 
-          ]
-      ]
-      set past-turtles lput who past-turtles
+  file-print "; Set inter-group links"
+
+  ask influence-links with [ inter-group = true ] [
+    file-type "[["
+    file-type word [my-group] of end1 " "
+    file-type [internal-group-id] of end1
+    file-type "] ["
+    file-type word [my-group] of end2 " "
+    file-type [internal-group-id] of end2
+    file-print "]]" 
   ]
   
   ; close file

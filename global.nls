@@ -42,9 +42,6 @@ turtles-own [
   group
   group-size
   
-  ; a boolean that indicates if the node is connected to another node outside of its own group
-  complementary-link
-  
   ; a number indicating the type of the node
   agent-type  
   
@@ -76,7 +73,15 @@ directed-link-breed [influence-links influence-link]
 
 ;; only use self-val in-vals self-weight
 ;; where is my-out-influence-links (builtin macro!) --> directed-link-bread
-links-own [ weight ]  ; the strength of the influence of the from (out) agent on the to (in) agent -- future: can be calculated as a difference between the strengths of the respective agents
+links-own [ 
+  
+  ; the strength of the influence of the from (out) agent on the to (in) agent -- future: can be calculated as a difference between the strengths of the respective agents
+  weight
+  
+  ; a boolean that indicates if the link connects to different groups
+  inter-group
+
+]  
 
 ;----------------------------------------------------------------------------;
 ;    Patches                                                                 ;

@@ -131,9 +131,9 @@ true
 true
 "" ""
 PENS
-"head agent (a0)" 1.0 0 -2674135 true "" "plot [self-val] of turtle 0"
-"other agent (a1)" 1.0 0 -13345367 true "" "plot [self-val] of turtle 1"
-"mid agent" 1.0 0 -7500403 true "" "let mid (total-agents / 2)\nplot [self-val] of turtle mid"
+"head agents" 1.0 0 -2674135 true "" "plot mean [self-val] of turtles with [agent-type = 1]"
+"other agents" 1.0 0 -13345367 true "" "plot mean [self-val] of turtles with [agent-type = 0]"
+"mid agent" 1.0 0 -15575016 true "" "plot mean [self-val] of turtles"
 
 INPUTBOX
 10
@@ -141,7 +141,7 @@ INPUTBOX
 125
 375
 number-of-agents
-10
+9
 1
 0
 Number
@@ -192,7 +192,7 @@ SWITCH
 293
 is-vary-eps?
 is-vary-eps?
-1
+0
 1
 -1000
 
@@ -212,7 +212,7 @@ INPUTBOX
 155
 475
 total-spokes
-1
+2
 1
 0
 Number
@@ -223,7 +223,7 @@ INPUTBOX
 320
 475
 number-of-neighbors
-2
+4
 1
 0
 Number
@@ -237,7 +237,7 @@ random-probability
 random-probability
 0
 1
-0.69
+0.51
 0.01
 1
 NIL
@@ -312,7 +312,7 @@ epsilon
 epsilon
 0
 1
-0.4
+0.1
 0.01
 1
 NIL
@@ -481,7 +481,7 @@ INPUTBOX
 88
 270
 total-groups
-6
+2
 1
 0
 Number
@@ -543,7 +543,7 @@ INPUTBOX
 495
 360
 max-eps
-0.7
+0.5
 1
 0
 Number
@@ -610,7 +610,7 @@ group-id
 group-id
 1
 total-groups
-1
+3
 1
 1
 NIL
@@ -632,7 +632,7 @@ INPUTBOX
 575
 225
 convergence-precision
-1.0E-5
+0.01
 1
 0
 Number
@@ -643,7 +643,7 @@ INPUTBOX
 575
 360
 step-eps
-0.2
+0.1
 1
 0
 Number

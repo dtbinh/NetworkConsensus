@@ -19,7 +19,7 @@
 ;----------------------------------------------------------------------------;
 
 ;----------------------------------------------------------------------------;
-;    Topology setup                                                          ;
+;    Topologies setup                                                        ;
 ;----------------------------------------------------------------------------;
 
 ; Responds to the "Edit group" button and creates/modifies a given group 
@@ -68,7 +68,7 @@ to adjust-agents
   ; create/kill turtles if the number of turtles with the given group-id is different
   ; from the given number of agents
   ifelse (number-of-turtles-in-group < number-of-agents) [
-    create-turtles (number-of-agents - number-of-turtles-in-group) [ set my-group group-id set complementary-link false ]
+    create-turtles (number-of-agents - number-of-turtles-in-group) [ set my-group group-id ]
   ]
   [
     ask max-n-of (number-of-turtles-in-group - number-of-agents) turtles with [ my-group = group-id ] [who] [ die ]
@@ -141,8 +141,17 @@ end
 ; Add a single edge from a node to another
 
 to add-edge [t_from t_to]
-  ask turtle t_from [ create-influence-link-to turtle t_to ]
-  ask turtle t_to [ create-influence-link-to  turtle t_from ]
+  ask turtle t_from [ 
+    create-influence-link-to turtle t_to [
+      if ([my-group] of turtle t_from != [my-group] of turtle t_to) [ set inter-group true ] 
+    ]
+  ]
+  ask turtle t_to [ 
+    create-influence-link-to turtle t_from [
+      if ([my-group] of turtle t_from != [my-group] of turtle t_to) [ set inter-group true ] 
+    ]
+  ]
+  setup-influence-links-weight
 end 
 
 ; Add multiples edges from list of nodes to another list of nodes
@@ -150,12 +159,14 @@ end
 to add-edges [T_from T_to]
   (foreach T_from T_to
     [ add-edge ?1 ?2 ])
+  setup-influence-links-weight
 end
 
 ; Add edges from one to multiple
 
 to add-edges-from [t_from T_to]
   foreach T_to [add-edge t_from ?]
+  setup-influence-links-weight
 end 
 
 ; Delete a single edge
@@ -163,6 +174,7 @@ end
 to delete-edge [t_from t_to]
   ask turtle t_from [ ask out-influence-link-to turtle t_to [die]]
   ask turtle t_to [ ask out-influence-link-to turtle t_from [die]]
+  setup-influence-links-weight
 end 
 
 ; Delete multiples edges from list of nodes to another list of nodes
@@ -170,12 +182,14 @@ end
 to delete-edges [T_from T_to]
   (foreach T_from T_to
     [ delete-edge ?1 ?2 ])
+  setup-influence-links-weight
 end
 
 ; Delete edges from one to multiple
 
 to delete-edges-from [t_from T_to]
   foreach T_to [delete-edge t_from ?]
+  setup-influence-links-weight
 end
 
 ;----------------------------------------------------------------------------;
@@ -206,7 +220,7 @@ to setup-influence-links-weight
   
   ask turtles with [ agent-type = 1 ] [
     set count-of-neighbors count my-in-influence-links
-    ask my-in-influence-links [ set weight precision (epsilon / count-of-neighbors ) 100 ]
+    ask my-in-influence-links [ set weight precision (epsilon / count-of-neighbors) 100 ]
   ]
   
   ask turtles with [ agent-type = 0 ] [

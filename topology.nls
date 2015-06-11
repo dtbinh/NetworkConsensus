@@ -13,7 +13,7 @@
 ;----------------------------------------------------------------------------;
 
 ;----------------------------------------------------------------------------;
-;    Links creation                                                          ;
+;    Group setup                                                             ;
 ;----------------------------------------------------------------------------;
 
 to setup-radial-network [setOfAgents]
@@ -37,7 +37,7 @@ to setup-full-network [setOfAgents]
 end
 
 to setup-random-network [setOfAgents]
- 
+  
   ;; Create a random network with a probability p of creating edges
   ask setOfAgents [
       ;; we use "self > myself" here so that each pair of turtles
@@ -133,7 +133,7 @@ to setup-custom-matrix-network [setOfAgents adjacency-matrix]
 end
 
 ;----------------------------------------------------------------------------;
-;    Scale Free                                                              ;
+;    Scale Free Network                                                      ;
 ;----------------------------------------------------------------------------;
 
 to setup-scale-free-network
