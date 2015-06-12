@@ -108,7 +108,7 @@ to adjust-network [adjacency-matrix]
   layout-circle (sort group-nodes) 5
   
   ; Set group's central agent
-  let centralAgent setup-central-agent group-nodes
+  let centralAgent setup-central-agent-from-list group-nodes
   
   ; Create links from adjacency matrix if it is provided,
   ; or according to the network-type if not.

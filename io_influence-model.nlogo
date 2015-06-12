@@ -610,7 +610,7 @@ group-id
 group-id
 1
 total-groups
-6
+7
 1
 1
 NIL

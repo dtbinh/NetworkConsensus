@@ -152,10 +152,10 @@ to setup-scale-free-network
     set prev-node new-node
   ]
   make-edge new-node first-node
-  ask first-node [
-    set agent-type 1 
-  ]
-  move-central-agent first-node
+;  ask first-node [
+;    set agent-type 1 
+;  ]
+  setup-central-agent first-node
 
   while [count turtles with [my-group = group-id] < number-of-agents] [
     make-node  ;; add one new node
@@ -169,7 +169,8 @@ to setup-scale-free-network
   ]
   
   let setOfAgents turtles with [my-group = group-id]
-  layout-circle (sort setOfAgents) 5
+  ;layout-circle (sort setOfAgents) 5
+  move-to-agent setOfAgents first-node
 end
 
 ;; connects the two nodes
@@ -251,7 +252,7 @@ end
 ;    Auxiliary Procedures                                                    ;
 ;----------------------------------------------------------------------------;
 
-to-report setup-central-agent [ agent-list ]
+to-report setup-central-agent-from-list [ agent-list ]
   let centralAgent first sort agent-list
   ask centralAgent [ set group-size count agent-list]
   ask centralAgent [ 
@@ -261,6 +262,16 @@ to-report setup-central-agent [ agent-list ]
     set agent-type 1
   ]
   report centralAgent
+end
+
+to setup-central-agent [ centralAgent ]
+  ask centralAgent [ set group-size number-of-agents]
+  ask centralAgent [ 
+    move-to one-of patches with [not any? other patches in-radius 5 with [belongs-to != nobody]] 
+    set group patches in-radius group-size
+    ask group [set belongs-to myself]
+    set agent-type 1
+  ]
 end
 
 to setup-custom-agents [nbOfAgents]
