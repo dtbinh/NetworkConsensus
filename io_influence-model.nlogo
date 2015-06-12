@@ -204,7 +204,7 @@ CHOOSER
 network-type?
 network-type?
 "Radial Network" "Full Network" "Ring Network" "Custom Wheel" "Random Network" "Scale-free Network"
-5
+1
 
 INPUTBOX
 10
@@ -312,7 +312,7 @@ epsilon
 epsilon
 0
 1
-0.1
+0.8
 0.01
 1
 NIL
