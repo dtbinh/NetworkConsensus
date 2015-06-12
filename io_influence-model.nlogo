@@ -141,7 +141,7 @@ INPUTBOX
 125
 375
 number-of-agents
-9
+8
 1
 0
 Number
@@ -192,7 +192,7 @@ SWITCH
 293
 is-vary-eps?
 is-vary-eps?
-0
+1
 1
 -1000
 
@@ -204,7 +204,7 @@ CHOOSER
 network-type?
 network-type?
 "Radial Network" "Full Network" "Ring Network" "Custom Wheel" "Random Network" "Scale-free Network"
-4
+5
 
 INPUTBOX
 10
@@ -212,7 +212,7 @@ INPUTBOX
 155
 475
 total-spokes
-2
+1
 1
 0
 Number
@@ -223,7 +223,7 @@ INPUTBOX
 320
 475
 number-of-neighbors
-4
+2
 1
 0
 Number
@@ -448,7 +448,7 @@ gamma
 gamma
 0
 3
-0
+1
 0.1
 1
 NIL
@@ -481,7 +481,7 @@ INPUTBOX
 88
 270
 total-groups
-2
+10
 1
 0
 Number
