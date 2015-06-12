@@ -53,32 +53,45 @@ to create-edit-topology [group-id]
   if (not is-list? group-ids) [ set group-ids [] setup-region ]
   
   ifelse (not member? group-id group-ids) [
+    
     set total-agents total-agents + number-of-agents
-    create-turtles number-of-agents [ set my-group group-id ]
-    if network-type? = "Radial Network" [
-      type "Radial group: " print group-id
-      let radialSet turtles with [my-group = group-id]
-      setup-custom-radial-network radialSet
+    
+    ifelse network-type? = "Scale-free Network" [
+      ifelse (num-edges >= number-of-agents or num-edges = 0)
+        [user-message "Number of edges must be less than total-agents" stop]
+        [
+          type "Scale-free group: " print group-id 
+          setup-custom-scale-free-network group-id 
+          type "g-list: " print group-ids
+        ]
     ]
-    if network-type? = "Random Network" [
-      type "Random group: " print group-id
-      let randomSet turtles with [my-group = group-id]
-      setup-custom-random-network randomSet
-    ]
-    if network-type? = "Full Network" [
-      type "Full group: " print group-id
-      let fullSet turtles with [my-group = group-id]
-      setup-custom-full-network fullSet
-    ]
-    if network-type? = "Ring Network" [
-      type "Ring Network group: " print group-id
-      let ringSet turtles with [my-group = group-id]
-      setup-custom-ring-network ringSet 
-    ]
-    if network-type? = "Ring Network Less Spokes" [
-      type "Ring Network Less Spokes group: " print group-id
-      let spokesSet turtles with [my-group = group-id]
-      setup-custom-ring-less-spokes-network spokesSet 
+    [
+      create-turtles number-of-agents [ set my-group group-id ]
+      if network-type? = "Radial Network" [
+        type "Radial group: " print group-id
+        let radialSet turtles with [my-group = group-id]
+        setup-custom-radial-network radialSet
+      ]
+      if network-type? = "Random Network" [
+        type "Random group: " print group-id
+        let randomSet turtles with [my-group = group-id]
+        setup-custom-random-network randomSet
+      ]
+      if network-type? = "Full Network" [
+        type "Full group: " print group-id
+        let fullSet turtles with [my-group = group-id]
+        setup-custom-full-network fullSet
+      ]
+      if network-type? = "Ring Network" [
+        type "Ring Network group: " print group-id
+        let ringSet turtles with [my-group = group-id]
+        setup-custom-ring-network ringSet 
+      ]
+      if network-type? = "Ring Network Less Spokes" [
+        type "Ring Network Less Spokes group: " print group-id
+        let spokesSet turtles with [my-group = group-id]
+        setup-custom-ring-less-spokes-network spokesSet 
+      ]
     ]
   
     set p 2
@@ -86,9 +99,10 @@ to create-edit-topology [group-id]
     display-labels
     reset-ticks
     set group-ids lput group-id group-ids
+    setup-weight-net
+    check-weights
   ]
   [user-message "ERROR: Group ID has already existed!" stop]
-  ;let agents turtles with [my-group = group-id]
   
 end
 
@@ -168,11 +182,11 @@ to setup-scale-free-network
   ;; make the initial network of two nodes and an edge
   set-default-shape turtles "circle"
   ;; make the initial network of two nodes and an edge
-  make-node ;; first node
+  make-node -1 ;; first node, group 0
   let first-node new-node
   let prev-node new-node
   repeat num-edges [
-    make-node ;; second node
+    make-node -1 ;; second node
     make-edge new-node prev-node ;; make the edge
     set degrees lput prev-node degrees
     set degrees lput new-node degrees
@@ -185,11 +199,11 @@ to setup-scale-free-network
   ]
 
   while [count turtles < total-agents] [
-    make-node  ;; add one new node
+    make-node -1 ;; add one new node
     
     ;; it's going to have m edges
     repeat num-edges [
-      let partner find-partner new-node      ;; find a partner for the new node
+      let partner find-partner new-node -1     ;; find a partner for the new node
       ;ask partner [set color blue]    ;; set color of partner to gray
       make-edge new-node partner     ;; connect it to the partner we picked before
     ]
@@ -736,6 +750,43 @@ to setup-multiple-networks
   reset-ticks
 end
 
+to setup-custom-scale-free-network [group-id]
+  set degrees []   ;; initialize the array to be empty
+  ;; make the initial network of two nodes and an edge
+  set-default-shape turtles "circle"
+  ;; make the initial network of two nodes and an edge
+  make-node group-id ;; first node
+  let first-node new-node
+  let prev-node new-node
+  repeat num-edges [
+    make-node group-id ;; second node
+    make-edge new-node prev-node ;; make the edge
+    set degrees lput prev-node degrees
+    set degrees lput new-node degrees
+    set prev-node new-node
+  ]
+  make-edge new-node first-node
+  ask first-node [
+    set self-val head's-value
+    set color red
+  ]
+
+  while [count turtles with [my-group = group-id] < number-of-agents] [
+    make-node group-id  ;; add one new node
+    
+    ;; it's going to have m edges
+    repeat num-edges [
+      let partner find-partner new-node group-id     ;; find a partner for the new node
+      ;ask partner [set color blue]    ;; set color of partner to gray
+      make-edge new-node partner     ;; connect it to the partner we picked before
+    ]
+  ]
+
+  let setOfAgents turtles with [my-group = group-id]
+  layout-circle (sort setOfAgents) 5
+  ;move-to-agent setOfAgents first-node
+end
+
 to setup-custom-ring-no-spokes [setOfAgents centralAgent startIndex]
 
   let maxIndex (startIndex + count setOfAgents)
@@ -784,8 +835,8 @@ to setup-custom-ring-network [ringSet]
   setup-custom-ring-no-spokes ringSet centralAgent startIndex
   
   ask centralAgent [
-    create-influence-links-to other turtles
-    create-influence-links-from other turtles
+    create-influence-links-to other ringSet
+    create-influence-links-from other ringSet
   ]
   
   ;set layout
@@ -906,7 +957,7 @@ to setup-custom-radial-network [setOfAgents]
   move-to-agent setOfAgents agent-who
 end
 
-to-report find-partner [node1]
+to-report find-partner [node1 group-id]
   ;; set a local variable called ispref that
   ;; determines if this link is going to be
   ;; preferential of not
@@ -922,7 +973,7 @@ to-report find-partner [node1]
 
   ifelse ispref 
   [ set partner one-of degrees ]
-  [ set partner one-of turtles ]
+  [ set partner one-of turtles with [my-group = group-id] ]
      
    ;; but need to check that partner chosen isn't
    ;; the node itself and also isn't a node that
@@ -939,7 +990,7 @@ to-report find-partner [node1]
             set partner one-of degrees
            ]
            [
-             set partner one-of turtles
+             set partner one-of turtles with [my-group = group-id]
            ]
             set checkit true
          ]
@@ -952,12 +1003,13 @@ to-report find-partner [node1]
 end
 
 ;; used for creating a new node
-to make-node
+to make-node [group-id]
   crt 1
   [
     set color blue
     set self-val other's-value
-    set new-node self ;; set the new-node global
+    set my-group group-id
+    set new-node self ;; set the new-node global    
   ]
 end
 
@@ -978,6 +1030,7 @@ to create-edge [id1 id2]
   ]
 end
 
+;; connect two nodes from different networks
 to connect-network [id1 id2]
   let node1 turtle id1
   let node2 turtle id2
@@ -1363,7 +1416,7 @@ CHOOSER
 network-type?
 network-type?
 "Radial Network" "Full Network" "Ring Network" "Ring Network Less Spokes" "Random Network" "Scale-free Network"
-3
+4
 
 INPUTBOX
 20
@@ -1438,7 +1491,7 @@ INPUTBOX
 110
 350
 topology-id
-1
+6
 1
 0
 Number
@@ -1630,7 +1683,7 @@ INPUTBOX
 172
 885
 num-edges
-2
+4
 1
 0
 Number
