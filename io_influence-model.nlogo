@@ -1,9 +1,21 @@
-;-----------------------------------
-;---     GLOBAL DEFINITIONS      ---
-;-----------------------------------
+;----------------------------------------------------------------------------;
+;                                                                            ;
+;    NetworkConsensus - MAIN CODE                                            ;
+;                                                                            ;
+;    Authors:                                                                ;
+;        Leonardo Mizoguti                                                   ;
+;        Man Hue Tran Diep                                                   ;
+;        Thierry Fosso Kenne                                                 ;
+;                                                                            ;
+;    Coordinator:                                                            ;
+;        Ada Diaconescu                                                      ;
+;                                                                            ;
+;----------------------------------------------------------------------------;
 
-directed-link-breed [influence-links influence-link]
+; Extensions
+extensions [ nw ]
 
+<<<<<<< HEAD
 turtles-own [
   
   ; value representing an agents opinion
@@ -845,26 +857,24 @@ to setup-custom-ring-less-spokes-network [spokesSet]
   setup-weight-net
   move-to-agent spokesSet centralAgent
 end
+=======
+; Module include
+__includes [
+>>>>>>> file-input
 
-to setup-custom-full-network [setOfAgents]
-  ;; setup layout
-  layout-circle (sort setOfAgents) 5
+  ; GLOBAL DEFINITIONS MODULE
+  "global.nls" 
   
-  ;; choose a random node and set it as central node
-  let agent-who one-of setOfAgents
-  setup-central-agent setOfAgents agent-who
+  ; SETUP MODULE
+  "setup.nls" 
   
-  ; create links in both directions between all pairs of turtles
-  foreach sort setOfAgents[
-    ask ? [ create-influence-links-to other setOfAgents ]
-  ]
+  ; TOPOLOGY MODULE
+  "topology.nls" 
   
-  ;set weights
-  setup-weight-net
-  
-  move-to-agent setOfAgents agent-who
-end
+  ; SIMULATION MODULE
+  "simulation.nls" 
 
+<<<<<<< HEAD
 to setup-custom-random-network [setOfAgents]
   ;; setup layout
   layout-circle (sort setOfAgents) 5
@@ -1088,106 +1098,24 @@ to load-file [file-name]
   set-default-shape turtles "circle"
   
   set epsilon read-from-string file-read-line
+=======
+  ; FILE I/O MODULE
+  "file-io.nls"
+>>>>>>> file-input
   
-  let total-clusters read-from-string file-read-line
-  
-  let cluster-centers (list turtle 0)
-  
-  let cluster-size read-from-string file-read-line
-  let turtle-index cluster-size
-  let cluster-sizes (list cluster-size)
-  
-  let cluster 1
-  
-  while [cluster < total-clusters] [
-    set cluster-size read-from-string file-read-line
-    set cluster-centers lput (turtle turtle-index) cluster-centers
-    set cluster-sizes lput cluster-size cluster-sizes
-    set turtle-index turtle-index + cluster-size
-    set cluster cluster + 1
-  ]
-    
-  set total-agents turtle-index
-  set turtle-index 0
-  set cluster 0
- 
-  let i 0
-  let j 0
-  let link-exists "0"
-  
-  layout-circle cluster-centers 12
-  foreach cluster-centers [ ask ? [ set color red ]]
-    
-  while [cluster < total-clusters] [
-    
-    set cluster-size item cluster cluster-sizes
-    
-    layout-circle sort turtles with [who > turtle-index and who < turtle-index + cluster-size] 4
-      
-    ask turtles with [who > turtle-index and who < turtle-index + cluster-size] [
-      setxy (xcor + [xcor] of turtle turtle-index) (ycor + [ycor] of turtle turtle-index)  
-    ]
-    
-    set i 0
-    while [i < cluster-size] [
-      set j 0
-      while [j < cluster-size] [
-        set link-exists file-read-characters 1
-        if (link-exists = "1" and i != j) [
-          ask turtle (i + turtle-index) [ create-influence-link-to turtle (j + turtle-index) ]
-        ]
-        if (not file-at-end?) [ set link-exists file-read-characters 1 ]
-        set j (j + 1) 
-      ]
-      set i (i + 1) 
-    ]
-    set cluster cluster + 1
-    set turtle-index turtle-index + cluster-size
-  ]
-  
-  file-close
-  
-  setup-weight-net
-  
-  set p 2
-  display-labels
-  reset-ticks
-  
-end
+  ; ERROR MODULE
+  "error.nls"
 
-to save-file [file-name]
-    
-  file-open user-new-file
-  
-  file-print total-agents
-  file-print epsilon
-  
-  let i 0
-  let j 0
-  
-  while [i < total-agents] [
-    set j 0
-    while [j < total-agents] [
-      let node-link [in-influence-link-from turtle j] of turtle i
-      file-type ifelse-value (node-link = nobody) [ "0" ] [ "1" ]
-      ifelse (j = total-agents - 1) [ file-print "" ] [ file-type " " ]
-      set j (j + 1) 
-    ]
-    set i (i + 1) 
-  ]
-  
-  file-close
-  
-end
+]
 @#$#@#$#@
 GRAPHICS-WINDOW
-255
-155
-933
-854
-16
-16
-20.242424242424242
+585
+65
+1168
+669
+32
+32
+8.82
 1
 10
 1
@@ -1197,10 +1125,10 @@ GRAPHICS-WINDOW
 0
 0
 1
--16
-16
--16
-16
+-32
+32
+-32
+32
 1
 1
 1
@@ -1208,12 +1136,12 @@ ticks
 30.0
 
 BUTTON
-125
-280
-232
-313
-Create / Edit
-create-edit-topology topology-id
+235
+210
+320
+243
+Edit group
+edit-group nobody
 NIL
 1
 T
@@ -1225,10 +1153,10 @@ NIL
 1
 
 SWITCH
-395
-105
-565
-138
+345
+535
+495
+568
 show-self-value
 show-self-value
 0
@@ -1236,10 +1164,10 @@ show-self-value
 -1000
 
 INPUTBOX
-20
-180
+150
 115
-240
+230
+175
 head's-value
 100
 1
@@ -1247,10 +1175,10 @@ head's-value
 Number
 
 INPUTBOX
-135
-180
-230
 240
+115
+320
+175
 other's-value
 0
 1
@@ -1258,10 +1186,10 @@ other's-value
 Number
 
 PLOT
-960
-95
-1750
-510
+1200
+90
+1885
+465
 self values
 tick
 self-value
@@ -1273,26 +1201,26 @@ true
 true
 "" ""
 PENS
-"head agent (a0)" 1.0 0 -2674135 true "" "plot [self-val] of turtle 0"
-"other agent (a1)" 1.0 0 -13345367 true "" "plot [self-val] of turtle 1"
-"mid agent" 1.0 0 -7500403 true "" "let mid (total-agents / 2)\nplot [self-val] of turtle mid"
+"head agents" 1.0 0 -2674135 true "" "plot mean [self-val] of turtles with [agent-type = 1]"
+"other agents" 1.0 0 -13345367 true "" "plot mean [self-val] of turtles with [agent-type = 0]"
+"mid agent" 1.0 0 -15575016 true "" "plot mean [self-val] of turtles"
 
 INPUTBOX
-20
-400
-230
-460
-number-of-agents
 10
+315
+125
+375
+number-of-agents
+8
 1
 0
 Number
 
 INPUTBOX
-960
+1200
+505
+1715
 565
-1533
-625
 log-file-path
 log.txt
 1
@@ -1300,10 +1228,10 @@ log.txt
 String
 
 SWITCH
-1550
-580
-1714
-613
+1720
+520
+1884
+553
 print-log-header
 print-log-header
 1
@@ -1311,11 +1239,11 @@ print-log-header
 -1000
 
 BUTTON
-330
+460
 65
-393
-98
-NIL
+575
+105
+Run!
 go
 T
 1
@@ -1325,62 +1253,50 @@ NIL
 NIL
 NIL
 NIL
-1
-
-BUTTON
-400
-65
-525
-98
-NIL
-go-varyAgents
-T
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
+0
 
 SWITCH
-255
-105
-390
-138
+345
+260
+495
+293
 is-vary-eps?
 is-vary-eps?
-0
+1
 1
 -1000
 
 CHOOSER
-20
-470
-229
-515
+140
+315
+320
+360
 network-type?
 network-type?
+<<<<<<< HEAD
 "Radial Network" "Full Network" "Ring Network" "Ring Network Less Spokes" "Random Network" "Scale-free Network"
 3
+=======
+"Radial Network" "Full Network" "Ring Network" "Custom Wheel" "Random Network" "Scale-free Network"
+5
+>>>>>>> file-input
 
 INPUTBOX
-20
-545
-230
-605
+10
+415
+155
+475
 total-spokes
-3
+1
 1
 0
 Number
 
 INPUTBOX
-20
-615
-230
-675
+175
+415
+320
+475
 number-of-neighbors
 2
 1
@@ -1388,24 +1304,24 @@ number-of-neighbors
 Number
 
 SLIDER
-20
-715
-230
-748
+10
+515
+315
+548
 random-probability
 random-probability
 0
 1
-0.1
-0.1
+0.51
+0.01
 1
 NIL
 HORIZONTAL
 
 TEXTBOX
-255
+730
 25
-405
+860
 46
 SIMULATION
 20
@@ -1413,9 +1329,9 @@ SIMULATION
 1
 
 TEXTBOX
-20
+130
 25
-170
+200
 46
 SETUP
 20
@@ -1423,15 +1339,16 @@ SETUP
 1
 
 TEXTBOX
-20
-255
+8
 185
-273
+173
+203
 Create & Edit Topologies
 13
 0.0
 1
 
+<<<<<<< HEAD
 INPUTBOX
 20
 290
@@ -1443,10 +1360,12 @@ topology-id
 0
 Number
 
+=======
+>>>>>>> file-input
 TEXTBOX
-20
+10
 65
-170
+160
 83
 General parameters
 13
@@ -1454,44 +1373,44 @@ General parameters
 1
 
 TEXTBOX
-20
-375
-170
-393
+10
+290
+160
+308
 Topology Parameters
 13
 0.0
 1
 
 TEXTBOX
-20
-525
-170
-543
-Custom Wheel Parameters
+10
+390
+185
+416
+Custom Wheel Network Parameters
 10
 0.0
 1
 
 SLIDER
-20
+10
 115
-230
+135
 148
 epsilon
 epsilon
 0
 1
-1
+0.1
 0.01
 1
 NIL
 HORIZONTAL
 
 TEXTBOX
-20
+10
 95
-170
+160
 113
 Influence factor
 10
@@ -1499,39 +1418,39 @@ Influence factor
 1
 
 TEXTBOX
-20
-160
-170
-178
+150
+95
+300
+113
 Initial opinion values
 10
 0.0
 1
 
 TEXTBOX
-20
-690
-170
-708
+10
+490
+160
+508
 Random Network Parameters
 10
 0.0
 1
 
 TEXTBOX
-960
-30
-1175
-50
+1440
+25
+1655
+45
 SIMULATION RESULTS
 20
 0.0
 1
 
 TEXTBOX
-960
+1200
 65
-1110
+1350
 83
 Convergence plot
 13
@@ -1539,31 +1458,31 @@ Convergence plot
 1
 
 TEXTBOX
-960
-530
-1110
-548
+1200
+480
+1350
+498
 Output file
 13
 0.0
 1
 
 TEXTBOX
-960
-655
-1110
-673
+10
+660
+160
+678
 Load & Save Topology
 13
 0.0
 1
 
 BUTTON
-960
-685
-1165
-718
-Load topology from file
+10
+690
+150
+723
+Load topology file
 load-file user-file
 NIL
 1
@@ -1576,11 +1495,11 @@ NIL
 1
 
 BUTTON
-960
-730
-1165
-763
-Save topology into file
+170
+690
+310
+723
+Save topology file
 save-file user-new-file
 NIL
 1
@@ -1593,10 +1512,10 @@ NIL
 1
 
 BUTTON
-125
-325
-230
-358
+235
+250
+320
+283
 Clear all
 clear-all
 NIL
@@ -1610,10 +1529,10 @@ NIL
 1
 
 SLIDER
-20
-780
-192
-813
+140
+595
+312
+628
 gamma
 gamma
 0
@@ -1625,50 +1544,217 @@ NIL
 HORIZONTAL
 
 INPUTBOX
-20
-825
-172
-885
+10
+585
+125
+645
 num-edges
-2
+4
 1
 0
 Number
 
 TEXTBOX
-25
-755
-175
-773
-Scale-free Network
+10
+565
+170
+583
+Scale-free Network Parameters
 10
 0.0
 1
 
-BUTTON
-610
-105
-792
-138
-NIL
-setup-multiple-networks
-NIL
+INPUTBOX
+8
+210
+88
+270
+total-groups
+10
 1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
+0
+Number
+
+TEXTBOX
+345
+115
+495
+133
+Simulation options
+13
+0.0
 1
 
-BUTTON
-255
-65
-317
-98
+TEXTBOX
+345
+240
+435
+258
+Epsilon variation
+10
+0.0
+1
+
+TEXTBOX
+345
+375
+475
+393
+Number of nodes variation
+10
+0.0
+1
+
+TEXTBOX
+345
+515
+390
+533
+Display
+10
+0.0
+1
+
+INPUTBOX
+345
+300
+415
+360
+min-eps
+0.1
+1
+0
+Number
+
+INPUTBOX
+420
+300
+495
+360
+max-eps
+0.5
+1
+0
+Number
+
+INPUTBOX
+345
+440
+415
+500
+min-agents
+10
+1
+0
+Number
+
+INPUTBOX
+420
+440
+495
+500
+max-agents
+60
+1
+0
+Number
+
+SWITCH
+345
+395
+495
+428
+is-vary-agents?
+is-vary-agents?
+1
+1
+-1000
+
+TEXTBOX
+330
+10
+345
+740
+|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|
+20
+0.0
+1
+
+TEXTBOX
+1180
+10
+1195
+731
+|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|
+20
+0.0
+1
+
+SLIDER
+100
+210
+225
+243
+group-id
+group-id
+1
+total-groups
+3
+1
+1
 NIL
-setup
+HORIZONTAL
+
+TEXTBOX
+345
+145
+460
+163
+Convergence precision
+10
+0.0
+1
+
+INPUTBOX
+345
+165
+575
+225
+convergence-precision
+0.01
+1
+0
+Number
+
+INPUTBOX
+500
+300
+575
+360
+step-eps
+0.1
+1
+0
+Number
+
+INPUTBOX
+500
+440
+575
+500
+step-agents
+25
+1
+0
+Number
+
+BUTTON
+345
+65
+455
+105
+Validate
+validate-simulation
 NIL
 1
 T

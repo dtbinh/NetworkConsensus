@@ -1,0 +1,118 @@
+;----------------------------------------------------------------------------;
+;                                                                            ;
+;    NetworkConsensus - GLOBAL DEFINITIONS                                   ;
+;                                                                            ;
+;    Authors:                                                                ;
+;        Leonardo Mizoguti                                                   ;
+;        Man Hue Tran Diep                                                   ;
+;        Thierry Fosso Kenne                                                 ;
+;                                                                            ;
+;    Coordinator:                                                            ;
+;        Ada Diaconescu                                                      ;
+;                                                                            ;
+;----------------------------------------------------------------------------;
+
+;----------------------------------------------------------------------------;
+;  This module is keeps all the global definitions, which includes breeds,   ;
+;  turtles, links and patches internal variables and global variables.       ;
+;  It can also include auxiliary reporters / procedures.                     ;
+;----------------------------------------------------------------------------;
+
+;----------------------------------------------------------------------------;
+;    Turtles                                                                 ;
+;----------------------------------------------------------------------------;
+
+; Nodes' internal variables
+turtles-own [
+  
+  ; value representing an agents opinion
+  self-val
+  
+  ; sum of in values
+  in-vals
+  
+  ; sum of out values
+  out-val
+  
+  ; social capital
+  self-weight 
+  
+  ; a number representing the group this turtle is a member of, or -1 if this turtle is not in a group.
+  my-group
+  group
+  group-size
+  
+  ; a number indicating the type of the node
+  agent-type  
+  
+]
+
+to-report internal-group-id
+    let turtle-group my-group
+    report position self sort turtles with [ my-group = turtle-group ]
+end
+
+to-report turtle-with-group-and-internal-id [turtle-group-id internal-id]
+    report item internal-id sort turtles with [my-group = turtle-group-id ]
+end
+
+to-report get-in-neighbour-weights
+  let in-weight-sum 0
+  foreach sort my-in-influence-links[
+       set in-weight-sum (in-weight-sum + [weight] of ?)  
+  ]
+  report in-weight-sum 
+end
+
+;----------------------------------------------------------------------------;
+;    Links                                                                   ;
+;----------------------------------------------------------------------------;
+
+; Influence links breed
+directed-link-breed [influence-links influence-link]
+
+;; only use self-val in-vals self-weight
+;; where is my-out-influence-links (builtin macro!) --> directed-link-bread
+links-own [ 
+  
+  ; the strength of the influence of the from (out) agent on the to (in) agent -- future: can be calculated as a difference between the strengths of the respective agents
+  weight
+  
+  ; a boolean that indicates if the link connects to different groups
+  inter-group
+
+]  
+
+;----------------------------------------------------------------------------;
+;    Patches                                                                 ;
+;----------------------------------------------------------------------------;
+
+patches-own [ belongs-to  ]
+
+;----------------------------------------------------------------------------;
+;    Global variables                                                        ;
+;----------------------------------------------------------------------------;
+
+globals [
+  p
+  new-node  ;; the last node we created
+  degrees   ;; this is an array that contains each node in
+            ;; proportion to its degree
+  group-ids 
+  total-agents
+  
+  ; simulation variables for variations (eps = epsilon, agt = number of agents)
+  eps
+  agt
+] 
+
+;----------------------------------------------------------------------------;
+;    Auxiliary general procedures                                            ;
+;----------------------------------------------------------------------------;
+
+to display-labels
+  ask turtles [ set label "" ]
+  if show-self-value [
+    ask turtles [ set label round self-val ]
+  ]
+end

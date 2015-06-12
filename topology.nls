@@ -1,0 +1,326 @@
+;----------------------------------------------------------------------------;
+;                                                                            ;
+;    NetworkConsensus - TOPOLOGY MODULE                                      ;
+;                                                                            ;
+;    Authors:                                                                ;
+;        Leonardo Mizoguti                                                   ;
+;        Man Hue Tran Diep                                                   ;
+;        Thierry Fosso Kenne                                                 ;
+;                                                                            ;
+;    Coordinator:                                                            ;
+;        Ada Diaconescu                                                      ;
+;                                                                            ;
+;----------------------------------------------------------------------------;
+
+;----------------------------------------------------------------------------;
+;    Group setup                                                             ;
+;----------------------------------------------------------------------------;
+
+to setup-radial-network [setOfAgents]
+ 
+  ; create links in both directions between central turtle and all other turtles
+  ask first sort setOfAgents [ 
+    create-influence-links-to other setOfAgents
+    create-influence-links-from other setOfAgents 
+  ]
+
+end
+
+to setup-full-network [setOfAgents] 
+  
+  ; create links in both directions between all pairs of turtles
+  ask setOfAgents [ 
+    create-influence-links-to other setOfAgents 
+    create-influence-links-from other setOfAgents 
+  ]
+  
+end
+
+to setup-random-network [setOfAgents]
+  
+  ;; Create a random network with a probability p of creating edges
+  ask setOfAgents [
+      ;; we use "self > myself" here so that each pair of turtles
+      ;; is only considered once and to avoid link to itself
+      create-influence-links-to setOfAgents with [self > myself and random-float 1.0 < random-probability]
+      ;create-influence-links-from setOfAgents with [self > myself and random-float 1.0 < random-probability]
+   ]
+  
+  ask influence-links [
+    let source-turtle end1
+    ask end2 [ create-influence-link-to source-turtle ]
+  ]
+ 
+end
+
+to setup-ring-network [ringSet] 
+   
+  ; create links in both directions between all neighbours of turtles => ring; except turtle 0 (the control agent)
+  setup-ring-no-spokes ringSet 2
+  
+  ask first sort ringSet [
+    create-influence-links-to other ringSet
+    create-influence-links-from other ringSet
+  ]
+  
+end
+
+to setup-custom-wheel-network [spokesSet]  
+  
+  ;; create links in both directions between all neighbours of turtles => ring; except turtle 0 (the control agent)
+  setup-ring-no-spokes spokesSet number-of-neighbors
+  
+  ; set links
+  let other-who 0
+  let list-agents sort spokesSet with [ agent-type != 1 ]
+  let delta round(length list-agents / total-spokes)
+  if(delta = 0)[set delta 1]
+  let counter 1 
+  while [other-who < length list-agents and counter <= total-spokes][
+    ask first sort spokesSet [
+      create-influence-link-to item other-who list-agents
+      create-influence-link-from item other-who list-agents
+      set other-who (other-who + delta)
+      set counter (counter + 1)
+    ]
+  ] 
+end
+
+to setup-ring-no-spokes [setOfAgents nbNeighbors]
+  let agent-list sort setOfAgents with [agent-type != 1] 
+  let node-index 0
+  let neighbor-pair 1
+  foreach agent-list  [
+    set neighbor-pair 1
+    repeat nbNeighbors / 2 [
+      let left-node-index (node-index - neighbor-pair)
+      let right-node-index (node-index + neighbor-pair)
+      ask ? [  
+        if (left-node-index < 0) [set left-node-index (length agent-list + left-node-index)]
+        if (right-node-index >= length agent-list) [set right-node-index (right-node-index - length agent-list)]
+        create-influence-link-to item right-node-index agent-list
+        create-influence-link-to item left-node-index agent-list
+      ]
+      set neighbor-pair neighbor-pair + 1
+    ]
+    set node-index node-index + 1
+  ]  
+end
+
+to setup-custom-matrix-network [setOfAgents adjacency-matrix]
+  
+  let row 0
+  let column 0
+  let list-agents sort setOfAgents
+  
+  while [row < number-of-agents] 
+  [
+    set column row + 1
+    while [column < number-of-agents]
+    [
+      if ((item column (item row adjacency-matrix)) = 1)
+      [
+        ask item row list-agents [ 
+          create-influence-link-to item column list-agents
+          create-influence-link-from item column list-agents 
+        ]
+      ]
+      set column column + 1
+    ]
+    set row row + 1  
+  ]
+  
+end
+
+;----------------------------------------------------------------------------;
+;    Scale Free Network                                                      ;
+;----------------------------------------------------------------------------;
+
+to setup-scale-free-network
+  ca
+  set degrees []   ;; initialize the array to be empty
+  ;; make the initial network of two nodes and an edge
+  set-default-shape turtles "circle"
+  ;; make the initial network of two nodes and an edge
+  make-node ;; first node
+  let first-node new-node
+  let prev-node new-node
+  repeat num-edges [
+    make-node ;; second node
+    make-edge new-node prev-node ;; make the edge
+    set degrees lput prev-node degrees
+    set degrees lput new-node degrees
+    set prev-node new-node
+  ]
+  make-edge new-node first-node
+  ask first-node [
+    set self-val head's-value
+    set color red
+  ]
+
+  while [count turtles < total-agents] [
+    make-node  ;; add one new node
+    
+    ;; it's going to have m edges
+    repeat num-edges [
+      let partner find-partner new-node      ;; find a partner for the new node
+      ;ask partner [set color blue]    ;; set color of partner to gray
+      make-edge new-node partner     ;; connect it to the partner we picked before
+    ]
+  ]
+
+  setup-influence-links-weight
+end
+
+;; connects the two nodes
+to make-edge [node1 node2]
+  ask node1 [
+    ifelse (node1 = node2) 
+    [
+      show "error: self-loop attempted"
+    ]
+    [
+      create-influence-link-to node2
+      create-influence-link-from node2
+      ;; position the new node near its partner
+      ;setxy ([xcor] of node2) ([ycor] of node2)
+      move-to node1
+      fd 8
+      set degrees lput node1 degrees
+      set degrees lput node2 degrees
+     ]
+  ]
+end
+
+;; used for creating a new node
+to make-node
+  crt 1
+  [
+    set color blue
+    set self-val other's-value
+    set new-node self ;; set the new-node global
+  ]
+end
+
+to-report find-partner [node1]
+  ;; set a local variable called ispref that
+  ;; determines if this link is going to be
+  ;; preferential of not
+  let ispref (random-float 1 >= gamma)
+  
+  ;; initialize partner to be the node itself
+  ;; this will have to be changed
+  let partner node1
+  
+  ;; if preferential attachment then choose
+  ;; from our degrees array
+  ;; otherwise chose one of the turtles at random
+
+  ifelse ispref 
+  [ set partner one-of degrees ]
+  [ set partner one-of turtles ]
+     
+   ;; but need to check that partner chosen isn't
+   ;; the node itself and also isn't a node that
+   ;; our node is already connected to
+   ;; if this is the case, it will try another
+   ;; partner and try again
+  let checkit true
+  while [checkit] [
+    ask partner [
+      ifelse ((link-neighbor? node1) or (partner = node1))
+        [
+          ifelse ispref 
+          [
+            set partner one-of degrees
+           ]
+           [
+             set partner one-of turtles
+           ]
+            set checkit true
+         ]
+         [
+           set checkit false
+         ]
+       ] 
+    ]
+  report partner
+end
+
+;----------------------------------------------------------------------------;
+;    Auxiliary Procedures                                                    ;
+;----------------------------------------------------------------------------;
+
+to-report setup-central-agent [ agent-list ]
+  let centralAgent first sort agent-list
+  ask centralAgent [ set group-size count agent-list]
+  ask centralAgent [ 
+    move-to one-of patches with [not any? other patches in-radius 5 with [belongs-to != nobody]] 
+    set group patches in-radius group-size
+    ask group [set belongs-to myself]
+    set agent-type 1
+  ]
+  report centralAgent
+end
+
+to setup-custom-agents [nbOfAgents]
+  ;; set shapes
+  set-default-shape turtles "circle"
+  ;; create agents
+  create-turtles nbOfAgents [ set color blue ]
+  ;; all turtles are initially ungrouped
+  ask turtles [ set my-group -1 ]
+end
+
+to move-central-agent [centralAgent]
+  ask centralAgent [ 
+    move-to one-of patches with [not any? other patches in-radius 5 with [belongs-to != nobody or belongs-to = centralAgent]] 
+    set group patches in-radius group-size
+    ask group [set belongs-to myself]
+  ]
+end
+
+to move-to-agent [setOfAgents centralAgent]
+  type "center node: " print centralAgent
+  let delta 1
+  foreach sort setOfAgents [
+    if ( ? != centralAgent ) [
+      type "move..." print ?
+      ask ? [
+        let x-cor xcor + [xcor] of centralAgent
+        let y-cor ycor + [ycor] of centralAgent
+        while [x-cor > max-pxcor] [set x-cor x-cor - delta]
+        while [x-cor < min-pxcor] [set x-cor x-cor + delta]
+        while [y-cor > max-pycor] [set y-cor y-cor - delta]
+        while [y-cor < min-pycor] [set y-cor y-cor + delta]
+        setxy x-cor y-cor
+        ;setxy (xcor + [xcor] of centralAgent) (ycor + [ycor] of centralAgent)
+      ]
+      ;move-to centralAgent
+      ;move-to one-of patches with [not any? turtles-here and belongs-to = centralAgent]
+    ]
+  ]
+end
+
+;to-report get-home ;; turtle procedure
+;  ;; calculate the minimum length of each side of our grid
+;  let side ceiling (sqrt (max [my-group] of turtles + 1))
+;
+;  report patch
+;           ;; compute the x coordinate
+;           (round ((world-width / side) * (my-group mod side)
+;             + min-pxcor + int (world-width / (side * 2))))
+;           ;; compute the y coordinate
+;           (round ((world-height / side) * int (my-group / side)
+;             + min-pycor + int (world-height / (side * 2))))
+;end
+
+
+
+
+
+
+
+
+
+
