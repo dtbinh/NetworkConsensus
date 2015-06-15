@@ -29,7 +29,6 @@ to-report simulate-varying-agents
 end
 
 to-report simulate-varying-epsilon
-  
   if simulate [
     set eps precision (eps + step-eps) ((-1) * floor(log step-eps 10))
     if eps > max-eps [ report true ]
@@ -73,7 +72,7 @@ to-report simulate
 end
 
 to validate-simulation
-  
+  set printed-head false
   ; validate network and simulation options to avoid inconsistencies   
   if (validate-network and validate-simulation-options) [
     adjust-agent-type-properties

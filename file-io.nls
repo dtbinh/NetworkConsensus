@@ -202,10 +202,11 @@ to print-results
   ; print in a log file
   file-open log-file-path ; open the log file for writing (file path indicated as input)
   if print-log-header[
-    file-type "number of agents: " file-type (count turtles)   
-    file-print ""
-    file-type "epsilon, ticks, convergence-value, weight-of-a0-on-a1, weight-of-neighs-&-self-on-a1, weight-of-others-on-a0, self-weight-of-a0, influence-report, weight-report-of-a1, weight-report-of-a0"
-    file-print ""
+    if not printed-head [
+      file-type "nb_turtles, epsilon, ticks, convergence-value, weight-of-a0-on-a1, weight-of-neighs-&-self-on-a1, weight-of-others-on-a0, self-weight-of-a0, influence-report, weight-report-of-a1, weight-report-of-a0"
+      file-print ""
+      set printed-head true
+    ]
   ]
   file-type count turtles file-type ", "
   file-type epsilon file-type ", "
@@ -221,4 +222,5 @@ to print-results
   file-print ""
   file-close
 end
+
 

@@ -104,6 +104,8 @@ globals [
   ; simulation variables for variations (eps = epsilon, agt = number of agents)
   eps
   agt
+  ;Boolean to check if header of out file is already printed
+  printed-head
 ] 
 
 ;----------------------------------------------------------------------------;
