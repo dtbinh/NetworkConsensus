@@ -227,7 +227,13 @@ to setup-influence-links-weight
   let norm 0
   let count-of-neighbors 0
   
-  ask turtles [
+  ask turtles with [agent-type = 1] [
+    let this-turtle self
+    set count-of-neighbors count my-in-influence-links
+    ask my-in-influence-links [ set weight precision (others-weight / count-of-neighbors) 100 ]
+  ]
+  
+  ask turtles with [agent-type = 0] [
     let this-turtle self
     set count-of-neighbors count my-in-influence-links
     let links-from-head my-in-influence-links with [ [agent-type] of end1 = 1 ]
@@ -237,6 +243,20 @@ to setup-influence-links-weight
     ask links-from-head [ set weight precision (head-weight / norm) 100 ]
     ask links-from-others [ set weight precision (others-weight / norm) 100 ]
   ]
+  
+;  Modèle normalisé
+;  ask turtles [
+;    let this-turtle self
+;    set count-of-neighbors count my-in-influence-links
+;    let links-from-head my-in-influence-links with [ [agent-type] of end1 = 1 ]
+;    let links-from-others my-in-influence-links with [ [agent-type] of end1 = 0 ]
+;    set norm (head-weight * count links-from-head) + (others-weight * count links-from-others)
+;    set norm norm + ifelse-value (agent-type = 1) [head-weight][others-weight]
+;    ask links-from-head [ set weight precision (head-weight / norm) 100 ]
+;    ask links-from-others [ set weight precision (others-weight / norm) 100 ]
+;  ]
+  
+  
   
   ask turtles [ 
     set self-weight (1 - get-in-neighbour-weights)

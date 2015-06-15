@@ -312,7 +312,7 @@ epsilon
 epsilon
 0
 1
-0.8
+0.2
 0.01
 1
 NIL
@@ -610,7 +610,7 @@ group-id
 group-id
 1
 total-groups
-7
+1
 1
 1
 NIL
@@ -632,7 +632,7 @@ INPUTBOX
 575
 225
 convergence-precision
-0.01
+1.0E-4
 1
 0
 Number
