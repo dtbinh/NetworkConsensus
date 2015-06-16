@@ -210,35 +210,35 @@ end
 
 to setup-ring-no-spokes
    ; create links in both directions between all neighbours of turtles => ring; except turtle 0 (the control agent)
-;  foreach sort turtles[
-;    let agent-who ([who] of ?)
-;    let left-agent-who (agent-who - 1)
-;    let right-agent-who (agent-who + 1)
-;    ask ?[  
-;      if(agent-who != 0)[
-;        if (left-agent-who = 0)[set left-agent-who (total-agents - 1)]
-;        if(right-agent-who = total-agents)[set right-agent-who 1]
-;        create-influence-link-to turtle right-agent-who 
-;        create-influence-link-to turtle left-agent-who
-;      ]
-;    ]
-;  ]
   foreach sort turtles[
     let agent-who ([who] of ?)
-    let pair-of-neighbors 1
-    repeat number-of-neighbors / 2 [
-      let left-agent-who ifelse-value (agent-who - pair-of-neighbors > 0) [agent-who - pair-of-neighbors] [ agent-who - pair-of-neighbors + total-agents - 1 ]
-      let right-agent-who ifelse-value (agent-who + pair-of-neighbors < total-agents) [agent-who + pair-of-neighbors] [ agent-who + pair-of-neighbors - total-agents + 1 ]
-      if (agent-who != 0)
-      [
-        ask ? [
-          create-influence-link-to turtle right-agent-who
-          create-influence-link-to turtle left-agent-who
-        ]  
+    let left-agent-who (agent-who - 1)
+    let right-agent-who (agent-who + 1)
+    ask ?[  
+      if(agent-who != 0)[
+        if (left-agent-who = 0)[set left-agent-who (total-agents - 1)]
+        if(right-agent-who = total-agents)[set right-agent-who 1]
+        create-influence-link-to turtle right-agent-who 
+        create-influence-link-to turtle left-agent-who
       ]
-      set pair-of-neighbors (pair-of-neighbors + 1)
     ]
   ]
+;  foreach sort turtles[
+;    let agent-who ([who] of ?)
+;    let pair-of-neighbors 1
+;    repeat number-of-neighbors / 2 [
+;      let left-agent-who ifelse-value (agent-who - pair-of-neighbors > 0) [agent-who - pair-of-neighbors] [ agent-who - pair-of-neighbors + total-agents - 1 ]
+;      let right-agent-who ifelse-value (agent-who + pair-of-neighbors < total-agents) [agent-who + pair-of-neighbors] [ agent-who + pair-of-neighbors - total-agents + 1 ]
+;      if (agent-who != 0)
+;      [
+;        ask ? [
+;          create-influence-link-to turtle right-agent-who
+;          create-influence-link-to turtle left-agent-who
+;        ]  
+;      ]
+;      set pair-of-neighbors (pair-of-neighbors + 1)
+;    ]
+;  ]
   ;ask turtle 0[; for agent 0
   ;    create-influence-links-to turtles
   ;    create-influence-links-from other turtles
@@ -746,7 +746,7 @@ SWITCH
 182
 show-self-value
 show-self-value
-1
+0
 1
 -1000
 
@@ -889,7 +889,7 @@ CHOOSER
 network-type?
 network-type?
 "Radial Network" "Full Network" "Ring Network" "Ring Network Less Spokes"
-3
+2
 
 INPUTBOX
 10
@@ -897,7 +897,7 @@ INPUTBOX
 165
 528
 total-spokes
-10
+1
 1
 0
 Number

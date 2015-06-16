@@ -5,8 +5,8 @@ import org.nlogo.app.App;
 public class FullNetwork {
 	
 	private static String nbOfAgents = "10";
-	private static String epsilon = "0.3";
-	//private final float convergent_factor = 0.00001f;
+	private static String epsilon = "0.1";
+	//private final static float convergent_factor = 0.00001f;
 	public static int nbOfTicks;
 	public static float nodeCentral;
 	public static float nodeSatellite;
@@ -38,14 +38,19 @@ public class FullNetwork {
 	        catch(java.io.IOException ex) {
 	          ex.printStackTrace();
 	        }}});
+	      System.out.println("Test Full Network with number of agents " + nbOfAgents + " and epsilon " + epsilon);
 	      App.app().command("set network-type? \"Full Network\"");
+	      //App.app().command("set number-of-agents " + nbOfAgents);
 	      App.app().command("set total-agents " + nbOfAgents);
 	      App.app().command("set head's-value 100");
 	      App.app().command("set other's-value 10");
 	      App.app().command("set epsilon " + epsilon);
+	      //App.app().command("set convergence-precision " + convergent_factor);
 	      App.app().command("set is-vary-eps? false");
 	      App.app().command("set show-self-value true");
 	      App.app().command("set print-log-header true");
+	      //App.app().command("edit-group nobody");
+	      //App.app().command("validate-simulation");
 	      App.app().command("setup");
 	      App.app().command("go");
 	      /* Computer and print result */
@@ -63,6 +68,6 @@ public class FullNetwork {
 	}
 	
 	public static void main(String[] args) {
-		FullNetwork.run(args, "10", "0.3");
+		FullNetwork.run(args, "10", "0.1");
 	}
 }
