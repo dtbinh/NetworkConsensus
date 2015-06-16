@@ -1,0 +1,226 @@
+;----------------------------------------------------------------------------;
+;                                                                            ;
+;    NetworkConsensus - FILE I/O MODULE                                      ;
+;                                                                            ;
+;    Authors:                                                                ;
+;        Leonardo Mizoguti                                                   ;
+;        Man Hue Tran Diep                                                   ;
+;        Thierry Fosso Kenne                                                 ;
+;                                                                            ;
+;    Coordinator:                                                            ;
+;        Ada Diaconescu                                                      ;
+;                                                                            ;
+;----------------------------------------------------------------------------;
+
+
+;loads a topology from a file
+to load-file [file-name]
+  
+  ; reset model
+  clear-all
+  setup-region
+  
+  ; opens file
+  file-open file-name
+  
+  ; gets epsilon value
+  set epsilon file-read
+  
+  ; gets head's value and others's values
+  set head's-value file-read
+  set other's-value file-read
+  
+  ; gets total topologies
+  set total-groups file-read
+  
+  ; group iteration
+  set group-id 1
+  repeat total-groups [
+    
+    let adjacency-matrix file-read
+    set number-of-agents length adjacency-matrix
+         
+    edit-group adjacency-matrix
+      
+    set group-id group-id + 1
+  ]
+  
+  set group-id 1
+  
+  ; complementary links
+  while [not file-at-end?] [
+      let clink file-read
+      let first-turtle turtle-with-group-and-internal-id item 0 (item 0 clink) item 1 (item 0 clink)
+      let second-turtle turtle-with-group-and-internal-id item 0 (item 1 clink) item 1 (item 1 clink)
+      ask first-turtle [ create-influence-link-to second-turtle ]
+  ]
+  
+  file-close
+  
+  ; adjust the agent values according to their type
+  adjust-agent-type-properties
+  
+  setup-influence-links-weight
+    
+  ; display labels if necessary
+  display-labels
+    
+end
+
+; saves topology into a new file
+to save-file [file-name]
+    
+  ; creates and open new file
+  file-open user-new-file
+  
+  ; write epsilon value
+  file-print "; Set epsilon value"
+  file-print epsilon
+  file-print ""
+  
+  ; write head's value
+  file-print "; Set head's value"
+  file-print head's-value
+  file-print ""
+  
+  ; write others' value
+  file-print "; Set others' value"
+  file-print other's-value
+  file-print ""
+  
+  ; write group ids
+  file-print "; Set total groups"
+  file-print total-groups
+  file-print ""
+  
+  file-print "; For each group, set adjacency matrix"
+  file-print ""
+  
+  ; group-id iteration
+  set group-id 1
+  repeat total-groups [
+    
+       ; print header
+       file-print word "; Group " group-id
+       file-print "["
+       
+       ; retrieve group
+       let turtle-group sort turtles with [my-group = group-id]
+       
+       ; write adjacency matrix
+       let row 0
+       while [row < length turtle-group] [
+           file-type " ["
+           let column 0
+           while [column < length turtle-group] [
+             ifelse (row != column)
+             [
+                 let node-link [in-influence-link-from item column turtle-group] of item row turtle-group
+                 file-type ifelse-value (node-link = nobody) [ "0" ] [ "1" ]  
+             ] 
+             [
+                 file-type "0" 
+             ]
+             file-type ifelse-value (column != length turtle-group - 1) [ " " ][ "]" ]
+             set column column + 1
+           ]
+           file-print ""
+           set row row + 1
+       ]
+       file-print "]"
+       file-print ""
+       
+       set group-id group-id + 1
+  ]
+  
+  file-print "; Set inter-group links"
+
+  ask influence-links with [ inter-group = true ] [
+    file-type "[["
+    file-type word [my-group] of end1 " "
+    file-type [internal-group-id] of end1
+    file-type "] ["
+    file-type word [my-group] of end2 " "
+    file-type [internal-group-id] of end2
+    file-print "]]" 
+  ]
+  
+  ; close file
+  file-close
+  
+end
+
+to print-results-for-random
+  let convergence-val (precision ([self-val] of turtle 1) p)
+  let influence-report precision ((convergence-val / (head's-value - other's-value))) p
+  
+  type "convergence value: " print convergence-val
+  type "self-weight of agent 0: " print precision ([self-weight] of turtle 0) p
+  type "influence-report: " print influence-report
+  type "ticks: " print ticks
+  
+  ; print in a log file
+  file-open log-file-path ; open the log file for writing (file path indicated as input)
+  if print-log-header[
+    file-type "number of agents: " file-type (count turtles)   
+    file-print ""
+    file-type "epsilon, ticks, convergence-value, influence-report"
+    file-print ""
+  ]
+  file-type epsilon file-type ", "
+  file-type ticks file-type ", " 
+  file-type convergence-val file-type ", "
+  file-type influence-report file-type ", " 
+  file-print ""
+  file-close
+end
+
+; prints the final results after convergence is reached
+to print-results
+  ;let p 3 ; precision  --> global var
+  let convergence-val (precision ([self-val] of turtle 1) p)
+  let influence-report precision ((convergence-val / (head's-value - other's-value))) p
+  let weight-of-ctrl-agent precision (([[weight] of in-influence-link-from turtle 0] of turtle 1)) p  ; weight of agent 0 on agent 1
+  let weight-of-neighs-with-ctrl precision ([get-in-neighbour-weights] of turtle 1) p
+  let weight-of-neighs-without-ctrl precision (weight-of-neighs-with-ctrl - weight-of-ctrl-agent) p
+  let weight-of-neigh-and-self precision (([self-weight] of turtle 1) + weight-of-neighs-without-ctrl) p
+  let weight-report-of-other precision (weight-of-ctrl-agent / weight-of-neigh-and-self) p
+  let weight-of-neighs-of-ctrl precision ([get-in-neighbour-weights] of turtle 0) p ; weight of other agents on agent 0 (cotnroller)
+  let weight-report-of-ctrl precision (weight-of-neighs-of-ctrl / ([self-weight] of turtle 0)) p
+  
+  ; print at the output console
+  type "convergence value: " print convergence-val
+  type "weight of agent 0 on agent 1: " print weight-of-ctrl-agent 
+  type "weight of neighbours and self on agent 1: " print weight-of-neigh-and-self
+  type "weight of others on agent 0: " print weight-of-neighs-of-ctrl
+  type "self-weight of agent 0: " print precision ([self-weight] of turtle 0) p
+  type "influence-report: " print influence-report
+  type "weight-report of agent 1: " print weight-report-of-other
+  type "weight-report of agent 0: " print weight-report-of-ctrl
+  type "ticks: " print ticks
+  
+  ; print in a log file
+  file-open log-file-path ; open the log file for writing (file path indicated as input)
+  if print-log-header[
+    if not printed-head [
+      file-type "nb_turtles, epsilon, ticks, convergence-value, weight-of-a0-on-a1, weight-of-neighs-&-self-on-a1, weight-of-others-on-a0, self-weight-of-a0, influence-report, weight-report-of-a1, weight-report-of-a0"
+      file-print ""
+      set printed-head true
+    ]
+  ]
+  file-type count turtles file-type ", "
+  file-type epsilon file-type ", "
+  file-type ticks file-type ", " 
+  file-type convergence-val file-type ", " 
+  file-type weight-of-ctrl-agent file-type ", "  
+  file-type weight-of-neigh-and-self file-type ", " 
+  file-type weight-of-neighs-of-ctrl file-type ", " 
+  file-type precision ([self-weight] of turtle 0) p file-type ", " 
+  file-type influence-report file-type ", " 
+  file-type weight-report-of-other file-type ", " 
+  file-type weight-report-of-ctrl file-type ", " 
+  file-print ""
+  file-close
+end
+
+

@@ -1,0 +1,268 @@
+;----------------------------------------------------------------------------;
+;                                                                            ;
+;    NetworkConsensus - SETUP MODULE                                         ;
+;                                                                            ;
+;    Authors:                                                                ;
+;        Leonardo Mizoguti                                                   ;
+;        Man Hue Tran Diep                                                   ;
+;        Thierry Fosso Kenne                                                 ;
+;                                                                            ;
+;    Coordinator:                                                            ;
+;        Ada Diaconescu                                                      ;
+;                                                                            ;
+;----------------------------------------------------------------------------;
+
+;----------------------------------------------------------------------------;
+;  This module is responsible for retrieving the topologies' parameters      ;
+;  and call the procedures from the TOPOLOGY MODULE to setup correctly       ;
+;  the whole network.                                                        ;
+;----------------------------------------------------------------------------;
+
+;----------------------------------------------------------------------------;
+;    Topologies setup                                                        ;
+;----------------------------------------------------------------------------;
+
+; Responds to the "Edit group" button and creates/modifies a given group 
+; identified by group-id according to the topology parameters.
+; Adjust the network according to the network-type? field if no adjacency-matrix
+; is provided.
+
+to edit-group [adjacency-matrix]
+  
+  set p 2
+  
+  ;setup patches
+  setup-region
+
+  ifelse network-type? != "Scale-free Network"[  
+    ; adjust agents by creating turtles or killing them if necessary  
+    adjust-agents
+    
+    ; adjust network by creating the right links
+    adjust-network adjacency-matrix
+  ]
+  [
+    ifelse (num-edges >= number-of-agents or num-edges = 0)
+        [report-error 3]
+        [setup-scale-free-network]
+  ]
+  
+  ; adjust the agent values according to their type
+  adjust-agent-type-properties
+    
+  ; set weights for all nodes and links
+  setup-influence-links-weight
+  
+  ; display labels if necessary
+  display-labels
+  
+  ; block simulations making re-validation necessary
+  clear-ticks
+  
+end
+
+; Sets the default shape of turtles and creates new or kills unnecessary
+; turtles depending on the group-id and the given number of agents.
+
+to adjust-agents
+  ; set the default shape as "circle"
+  set-default-shape turtles "circle" 
+  
+  ; get number of turtles with the given group-id
+  let number-of-turtles-in-group count turtles with [my-group = group-id]
+  
+  ; create/kill turtles if the number of turtles with the given group-id is different
+  ; from the given number of agents
+  ifelse (number-of-turtles-in-group < number-of-agents) [
+    create-turtles (number-of-agents - number-of-turtles-in-group) [ set my-group group-id ]
+  ]
+  [
+    ask max-n-of (number-of-turtles-in-group - number-of-agents) turtles with [ my-group = group-id ] [who] [ die ]
+  ]
+  
+end
+
+; Sets nodes properties depending on their type.
+
+to adjust-agent-type-properties
+  ask turtles with [ agent-type = 0 ] [ set color blue set self-val other's-value ]
+  ask turtles with [ agent-type = 1 ] [ set color red set self-val head's-value ]
+end
+
+; Move nodes to different groups, set their position and create all
+; necessary links according to the network-type or to the adjacency matrix
+; if it is provided.
+
+to adjust-network [adjacency-matrix]
+  ; Select nodes belonging to the given group
+  let group-nodes turtles with [my-group = group-id]
+  
+  ; Clear all existing links and reset nodes' type
+  ask group-nodes [
+    ask my-in-influence-links [die]
+    ask my-out-influence-links [die] 
+    set agent-type 0
+  ]
+  
+  ; Position nodes in a cirle
+  layout-circle (sort group-nodes) 5
+  
+  ; Set group's central agent
+  let centralAgent setup-central-agent-from-list group-nodes
+  
+  ; Create links from adjacency matrix if it is provided,
+  ; or according to the network-type if not.
+  ifelse adjacency-matrix != nobody [
+    setup-custom-matrix-network group-nodes adjacency-matrix
+  ]
+  [
+    ; setup network
+    ifelse network-type? = "Radial Network" [
+      setup-radial-network group-nodes
+    ][
+    ifelse network-type? = "Full Network" [
+      setup-full-network group-nodes
+    ][
+    ifelse network-type? = "Ring Network" [
+      setup-ring-network group-nodes
+    ][
+    ifelse network-type? = "Custom Wheel" [
+      ifelse (total-spokes >= number-of-agents)
+        [report-error 4]
+        [setup-custom-wheel-network group-nodes]
+    ][
+    ifelse network-type? = "Random Network" [
+      setup-random-network group-nodes
+    ][
+    ;if network-type? = "Scale-fee Network"[
+      ;setup-scale-free-network]
+    ]]]]]
+  ]
+  
+  ; Moves the group
+  move-to-agent group-nodes centralAgent
+  
+end
+
+;----------------------------------------------------------------------------;
+;    Links setup                                                             ;
+;----------------------------------------------------------------------------;
+
+; Add a single edge from a node to another
+
+to add-edge [t_from t_to]
+  ask turtle t_from [ 
+    create-influence-link-to turtle t_to [
+      if ([my-group] of turtle t_from != [my-group] of turtle t_to) [ set inter-group true ] 
+    ]
+  ]
+  ask turtle t_to [ 
+    create-influence-link-to turtle t_from [
+      if ([my-group] of turtle t_from != [my-group] of turtle t_to) [ set inter-group true ] 
+    ]
+  ]
+  setup-influence-links-weight
+end 
+
+; Add multiples edges from list of nodes to another list of nodes
+
+to add-edges [T_from T_to]
+  (foreach T_from T_to
+    [ add-edge ?1 ?2 ])
+  setup-influence-links-weight
+end
+
+; Add edges from one to multiple
+
+to add-edges-from [t_from T_to]
+  foreach T_to [add-edge t_from ?]
+  setup-influence-links-weight
+end 
+
+; Delete a single edge
+
+to delete-edge [t_from t_to]
+  ask turtle t_from [ ask out-influence-link-to turtle t_to [die]]
+  ask turtle t_to [ ask out-influence-link-to turtle t_from [die]]
+  setup-influence-links-weight
+end 
+
+; Delete multiples edges from list of nodes to another list of nodes
+
+to delete-edges [T_from T_to]
+  (foreach T_from T_to
+    [ delete-edge ?1 ?2 ])
+  setup-influence-links-weight
+end
+
+; Delete edges from one to multiple
+
+to delete-edges-from [t_from T_to]
+  foreach T_to [delete-edge t_from ?]
+  setup-influence-links-weight
+end
+
+;----------------------------------------------------------------------------;
+;    Regions setup                                                           ;
+;----------------------------------------------------------------------------;
+
+; Setup patches to distribute different groups
+
+to setup-region
+  
+  ask patches [set belongs-to nobody]
+
+end
+
+;----------------------------------------------------------------------------;
+;    Weights setup                                                           ;
+;----------------------------------------------------------------------------;
+
+; Calculates the weight of each node and link in the network
+
+to setup-influence-links-weight 
+  let head-weight (1 - epsilon)
+  let others-weight epsilon
+ 
+  let norm 0
+  let count-of-neighbors 0
+  
+  ask turtles with [agent-type = 1] [
+    let this-turtle self
+    set count-of-neighbors count my-in-influence-links
+    ask my-in-influence-links [ set weight precision (others-weight / count-of-neighbors) 100 ]
+  ]
+  
+  ask turtles with [agent-type = 0] [
+    let this-turtle self
+    set count-of-neighbors count my-in-influence-links
+    let links-from-head my-in-influence-links with [ [agent-type] of end1 = 1 ]
+    let links-from-others my-in-influence-links with [ [agent-type] of end1 = 0 ]
+    set norm (head-weight * count links-from-head) + (others-weight * count links-from-others)
+    set norm norm + ifelse-value (agent-type = 1) [head-weight][others-weight]
+    ask links-from-head [ set weight precision (head-weight / norm) 100 ]
+    ask links-from-others [ set weight precision (others-weight / norm) 100 ]
+  ]
+  
+;  Modèle normalisé
+;  ask turtles [
+;    let this-turtle self
+;    set count-of-neighbors count my-in-influence-links
+;    let links-from-head my-in-influence-links with [ [agent-type] of end1 = 1 ]
+;    let links-from-others my-in-influence-links with [ [agent-type] of end1 = 0 ]
+;    set norm (head-weight * count links-from-head) + (others-weight * count links-from-others)
+;    set norm norm + ifelse-value (agent-type = 1) [head-weight][others-weight]
+;    ask links-from-head [ set weight precision (head-weight / norm) 100 ]
+;    ask links-from-others [ set weight precision (others-weight / norm) 100 ]
+;  ]
+  
+  
+  
+  ask turtles [ 
+    set self-weight (1 - get-in-neighbour-weights)
+  ]
+  
+end
+
+
+
