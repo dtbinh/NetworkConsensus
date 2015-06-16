@@ -1,0 +1,36 @@
+;----------------------------------------------------------------------------;
+;                                                                            ;
+;    NetworkConsensus - ERROR MODULE                                         ;
+;                                                                            ;
+;    Authors:                                                                ;
+;        Leonardo Mizoguti                                                   ;
+;        Man Hue Tran Diep                                                   ;
+;        Thierry Fosso Kenne                                                 ;
+;                                                                            ;
+;    Coordinator:                                                            ;
+;        Ada Diaconescu                                                      ;
+;                                                                            ;
+;----------------------------------------------------------------------------;
+
+;----------------------------------------------------------------------------;
+;    ERROR CODES                                                             ;
+;                                                                            ;
+;    [1] = Network graph is not connected                                    ;
+;    [2] = Incorrect influence-link weights                                  ;
+;    [3] = Number of edges must be less than number of agents in network     ;
+;    [4] = Total spokes must be less than number of agents in network        ;
+;----------------------------------------------------------------------------;
+
+
+to report-error [error-code]
+  
+  let message ""
+  
+  ifelse error-code = 1 [ set message "[ERROR 1] The network graph is not connected" ]
+  [ ifelse error-code = 2 [ set message "[ERROR 2] Incorrect influence-link weights" ] 
+    [ ifelse error-code = 3 [set message "[ERROR 3] Number of edges must be less than number of agents in network"] 
+      [ if error-code = 4 [set message "[ERROR 4] Total spokes must be less than number of agents in network"] ]]]
+  
+  user-message message
+  
+end

@@ -1,51 +1,62 @@
-;----------------------------------------------------------------------------;
-;                                                                            ;
-;    NetworkConsensus - MAIN CODE                                            ;
-;                                                                            ;
-;    Authors:                                                                ;
-;        Leonardo Mizoguti                                                   ;
-;        Man Hue Tran Diep                                                   ;
-;        Thierry Fosso Kenne                                                 ;
-;                                                                            ;
-;    Coordinator:                                                            ;
-;        Ada Diaconescu                                                      ;
-;                                                                            ;
-;----------------------------------------------------------------------------;
-
-; Extensions
-extensions [ nw ]
-
-; Module include
-__includes [
-
-  ; GLOBAL DEFINITIONS MODULE
-  "global.nls" 
-  
-  ; SETUP MODULE
-  "setup.nls" 
-  
-  ; TOPOLOGY MODULE
-  "topology.nls" 
-  
-  ; SIMULATION MODULE
-  "simulation.nls" 
-
-  ; FILE I/O MODULE
-  "file-io.nls"
-  
-  ; ERROR MODULE
-  "error.nls"
-
+globals [
+  initial-trees   ;; how many trees (green patches) we started with
+  burned-trees    ;; how many have burned so far
 ]
+
+breed [fires fire]    ;; bright red turtles -- the leading edge of the fire
+breed [embers ember]  ;; turtles gradually fading from red to near black
+
+to setup
+  clear-all
+  set-default-shape turtles "square"
+  ;; make some green trees
+  ask patches with [(random-float 100) < density]
+    [ set pcolor green ]
+  ;; make a column of burning trees
+  ask patches with [pxcor = min-pxcor]
+    [ ignite ]
+  ;; set tree counts
+  set initial-trees count patches with [pcolor = green]
+  set burned-trees 0
+  reset-ticks
+end
+
+to go
+  if not any? turtles  ;; either fires or embers
+    [ stop ]
+  ask fires
+    [ ask neighbors4 with [pcolor = green]
+        [ ignite ]
+      set breed embers ]
+  fade-embers
+  tick
+end
+
+;; creates the fire turtles
+to ignite  ;; patch procedure
+  sprout-fires 1
+    [ set color red ]
+  set pcolor black
+  set burned-trees burned-trees + 1
+end
+
+;; achieve fading color effect for the fire as it burns
+to fade-embers
+  ask embers
+    [ set color color - 0.3  ;; make red darker
+      if color < red - 3.5     ;; are we almost at black?
+        [ set pcolor color
+          die ] ]
+end
 @#$#@#$#@
 GRAPHICS-WINDOW
-585
-65
-1168
-669
-32
-32
-8.82
+200
+10
+712
+543
+125
+125
+2.0
 1
 10
 1
@@ -55,125 +66,48 @@ GRAPHICS-WINDOW
 0
 0
 1
--32
-32
--32
-32
+-125
+125
+-125
+125
 1
 1
 1
 ticks
 30.0
 
-BUTTON
-235
-210
-320
-243
-Edit group
-edit-group nobody
-NIL
+MONITOR
+43
+131
+158
+176
+percent burned
+(burned-trees / initial-trees)\n* 100
 1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
 1
+11
 
-SWITCH
-345
-535
-495
-568
-show-self-value
-show-self-value
-0
-1
--1000
-
-INPUTBOX
-150
-115
-230
-175
-head's-value
-100
-1
-0
-Number
-
-INPUTBOX
-240
-115
-320
-175
-other's-value
-0
-1
-0
-Number
-
-PLOT
-1200
-90
-1885
-465
-self values
-tick
-self-value
+SLIDER
+5
+38
+190
+71
+density
+density
 0.0
-10.0
-0.0
-10.0
-true
-true
-"" ""
-PENS
-"head agents" 1.0 0 -2674135 true "" "plot mean [self-val] of turtles with [agent-type = 1]"
-"other agents" 1.0 0 -13345367 true "" "plot mean [self-val] of turtles with [agent-type = 0]"
-"mid agent" 1.0 0 -15575016 true "" "plot mean [self-val] of turtles"
-
-INPUTBOX
-10
-315
-125
-375
-number-of-agents
-8
+99.0
+57
+1.0
 1
-0
-Number
-
-INPUTBOX
-1200
-505
-1715
-565
-log-file-path
-log.txt
-1
-0
-String
-
-SWITCH
-1720
-520
-1884
-553
-print-log-header
-print-log-header
-1
-1
--1000
+%
+HORIZONTAL
 
 BUTTON
-460
-65
-575
-105
-Run!
+106
+79
+175
+115
+go
 go
 T
 1
@@ -183,489 +117,15 @@ NIL
 NIL
 NIL
 NIL
-0
-
-SWITCH
-345
-260
-495
-293
-is-vary-eps?
-is-vary-eps?
-1
-1
--1000
-
-CHOOSER
-140
-315
-320
-360
-network-type?
-network-type?
-"Radial Network" "Full Network" "Ring Network" "Custom Wheel" "Random Network" "Scale-free Network"
 1
 
-INPUTBOX
-10
-415
-155
-475
-total-spokes
-4
-1
-0
-Number
-
-INPUTBOX
-175
-415
-320
-475
-number-of-neighbors
-2
-1
-0
-Number
-
-SLIDER
-10
-515
-315
-548
-random-probability
-random-probability
-0
-1
-0.51
-0.01
-1
-NIL
-HORIZONTAL
-
-TEXTBOX
-730
-25
-860
-46
-SIMULATION
-20
-0.0
-1
-
-TEXTBOX
-130
-25
-200
-46
-SETUP
-20
-0.0
-1
-
-TEXTBOX
-8
-185
-173
-203
-Create & Edit Topologies
-13
-0.0
-1
-
-TEXTBOX
-10
-65
-160
-83
-General parameters
-13
-0.0
-1
-
-TEXTBOX
-10
-290
-160
-308
-Topology Parameters
-13
-0.0
-1
-
-TEXTBOX
-10
-390
-185
-416
-Custom Wheel Network Parameters
-10
-0.0
-1
-
-SLIDER
-10
+BUTTON
+26
+79
+96
 115
-135
-148
-epsilon
-epsilon
-0
-1
-0.2
-0.01
-1
-NIL
-HORIZONTAL
-
-TEXTBOX
-10
-95
-160
-113
-Influence factor
-10
-0.0
-1
-
-TEXTBOX
-150
-95
-300
-113
-Initial opinion values
-10
-0.0
-1
-
-TEXTBOX
-10
-490
-160
-508
-Random Network Parameters
-10
-0.0
-1
-
-TEXTBOX
-1440
-25
-1655
-45
-SIMULATION RESULTS
-20
-0.0
-1
-
-TEXTBOX
-1200
-65
-1350
-83
-Convergence plot
-13
-0.0
-1
-
-TEXTBOX
-1200
-480
-1350
-498
-Output file
-13
-0.0
-1
-
-TEXTBOX
-10
-660
-160
-678
-Load & Save Topology
-13
-0.0
-1
-
-BUTTON
-10
-690
-150
-723
-Load topology file
-load-file user-file
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-BUTTON
-170
-690
-310
-723
-Save topology file
-save-file user-new-file
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-BUTTON
-235
-250
-320
-283
-Clear all
-clear-all
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-SLIDER
-140
-595
-312
-628
-gamma
-gamma
-0
-3
-1
-0.1
-1
-NIL
-HORIZONTAL
-
-INPUTBOX
-10
-585
-125
-645
-num-edges
-2
-1
-0
-Number
-
-TEXTBOX
-10
-565
-170
-583
-Scale-free Network Parameters
-10
-0.0
-1
-
-INPUTBOX
-8
-210
-88
-270
-total-groups
-10
-1
-0
-Number
-
-TEXTBOX
-345
-115
-495
-133
-Simulation options
-13
-0.0
-1
-
-TEXTBOX
-345
-240
-435
-258
-Epsilon variation
-10
-0.0
-1
-
-TEXTBOX
-345
-375
-475
-393
-Number of nodes variation
-10
-0.0
-1
-
-TEXTBOX
-345
-515
-390
-533
-Display
-10
-0.0
-1
-
-INPUTBOX
-345
-300
-415
-360
-min-eps
-0.1
-1
-0
-Number
-
-INPUTBOX
-420
-300
-495
-360
-max-eps
-0.5
-1
-0
-Number
-
-INPUTBOX
-345
-440
-415
-500
-min-agents
-10
-1
-0
-Number
-
-INPUTBOX
-420
-440
-495
-500
-max-agents
-60
-1
-0
-Number
-
-SWITCH
-345
-395
-495
-428
-is-vary-agents?
-is-vary-agents?
-1
-1
--1000
-
-TEXTBOX
-330
-10
-345
-740
-|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|
-20
-0.0
-1
-
-TEXTBOX
-1180
-10
-1195
-731
-|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|\n|
-20
-0.0
-1
-
-SLIDER
-100
-210
-225
-243
-group-id
-group-id
-1
-total-groups
-1
-1
-1
-NIL
-HORIZONTAL
-
-TEXTBOX
-345
-145
-460
-163
-Convergence precision
-10
-0.0
-1
-
-INPUTBOX
-345
-165
-575
-225
-convergence-precision
-1.0E-4
-1
-0
-Number
-
-INPUTBOX
-500
-300
-575
-360
-step-eps
-0.1
-1
-0
-Number
-
-INPUTBOX
-500
-440
-575
-500
-step-agents
-25
-1
-0
-Number
-
-BUTTON
-345
-65
-455
-105
-Validate
-validate-simulation
+setup
+setup
 NIL
 1
 T
@@ -679,39 +139,58 @@ NIL
 @#$#@#$#@
 ## WHAT IS IT?
 
-(a general understanding of what the model is trying to show or explain)
+This project simulates the spread of a fire through a forest.  It shows that the fire's chance of reaching the right edge of the forest depends critically on the density of trees. This is an example of a common feature of complex systems, the presence of a non-linear threshold or critical parameter.
 
 ## HOW IT WORKS
 
-(what rules the agents use to create the overall behavior of the model)
+The fire starts on the left edge of the forest, and spreads to neighboring trees. The fire spreads in four directions: north, east, south, and west.
+
+The model assumes there is no wind.  So, the fire must have trees along its path in order to advance.  That is, the fire cannot skip over an unwooded area (patch), so such a patch blocks the fire's motion in that direction.
 
 ## HOW TO USE IT
 
-(how to use the model, including a description of each of the items in the Interface tab)
+Click the SETUP button to set up the trees (green) and fire (red on the left-hand side).
+
+Click the GO button to start the simulation.
+
+The DENSITY slider controls the density of trees in the forest. (Note: Changes in the DENSITY slider do not take effect until the next SETUP.)
 
 ## THINGS TO NOTICE
 
-(suggested things for the user to notice while running the model)
+When you run the model, how much of the forest burns. If you run it again with the same settings, do the same trees burn? How similar is the burn from run to run?
+
+Each turtle that represents a piece of the fire is born and then dies without ever moving. If the fire is made of turtles but no turtles are moving, what does it mean to say that the fire moves? This is an example of different levels in a system: at the level of the individual turtles, there is no motion, but at the level of the turtles collectively over time, the fire moves.
 
 ## THINGS TO TRY
 
-(suggested things for the user to try to do (move sliders, switches, etc.) with the model)
+Set the density of trees to 55%. At this setting, there is virtually no chance that the fire will reach the right edge of the forest. Set the density of trees to 70%. At this setting, it is almost certain that the fire will reach the right edge. There is a sharp transition around 59% density. At 59% density, the fire has a 50/50 chance of reaching the right edge.
+
+Try setting up and running a BehaviorSpace experiment (see Tools menu) to analyze the percent burned at different tree density levels.
 
 ## EXTENDING THE MODEL
 
-(suggested things to add or change in the Code tab to make the model more complicated, detailed, accurate, etc.)
+What if the fire could spread in eight directions (including diagonals)? To do that, use "neighbors" instead of "neighbors4". How would that change the fire's chances of reaching the right edge? In this model, what "critical density" of trees is needed for the fire to propagate?
+
+Add wind to the model so that the fire can "jump" greater distances in certain directions.
 
 ## NETLOGO FEATURES
 
-(interesting or unusual features of NetLogo that the model uses, particularly in the Code tab; or where workarounds were needed for missing features)
+Unburned trees are represented by green patches; burning trees are represented by turtles.  Two breeds of turtles are used, "fires" and "embers".  When a tree catches fire, a new fire turtle is created; a fire turns into an ember on the next turn.  Notice how the program gradually darkens the color of embers to achieve the visual effect of burning out.
+
+The `neighbors4` primitive is used to spread the fire.
+
+You could also write the model without turtles by just having the patches spread the fire, and doing it that way makes the code a little simpler.   Written that way, the model would run much slower, since all of the patches would always be active.  By using turtles, it's much easier to restrict the model's activity to just the area around the leading edge of the fire.
+
+See the "CA 1D Rule 30" and "CA 1D Rule 30 Turtle" for an example of a model written both with and without turtles.
 
 ## RELATED MODELS
 
-(models in the NetLogo Models Library and elsewhere which are of related interest)
+* Percolation
+* Rumor Mill
 
 ## CREDITS AND REFERENCES
 
-(a reference to the model's URL on the web if it has one, as well as any other necessary credits, citations, and links)
+http://en.wikipedia.org/wiki/Forest-fire_model
 @#$#@#$#@
 default
 true
@@ -905,22 +384,6 @@ Polygon -7500403 true true 135 105 90 60 45 45 75 105 135 135
 Polygon -7500403 true true 165 105 165 135 225 105 255 45 210 60
 Polygon -7500403 true true 135 90 120 45 150 15 180 45 165 90
 
-sheep
-false
-15
-Circle -1 true true 203 65 88
-Circle -1 true true 70 65 162
-Circle -1 true true 150 105 120
-Polygon -7500403 true false 218 120 240 165 255 165 278 120
-Circle -7500403 true false 214 72 67
-Rectangle -1 true true 164 223 179 298
-Polygon -1 true true 45 285 30 285 30 240 15 195 45 210
-Circle -1 true true 3 83 150
-Rectangle -1 true true 65 221 80 296
-Polygon -1 true true 195 285 210 285 210 240 240 210 195 210
-Polygon -7500403 true false 276 85 285 105 302 99 294 83
-Polygon -7500403 true false 219 85 210 105 193 99 201 83
-
 square
 false
 0
@@ -1005,13 +468,6 @@ Line -7500403 true 40 84 269 221
 Line -7500403 true 40 216 269 79
 Line -7500403 true 84 40 221 269
 
-wolf
-false
-0
-Polygon -16777216 true false 253 133 245 131 245 133
-Polygon -7500403 true true 2 194 13 197 30 191 38 193 38 205 20 226 20 257 27 265 38 266 40 260 31 253 31 230 60 206 68 198 75 209 66 228 65 243 82 261 84 268 100 267 103 261 77 239 79 231 100 207 98 196 119 201 143 202 160 195 166 210 172 213 173 238 167 251 160 248 154 265 169 264 178 247 186 240 198 260 200 271 217 271 219 262 207 258 195 230 192 198 210 184 227 164 242 144 259 145 284 151 277 141 293 140 299 134 297 127 273 119 270 105
-Polygon -7500403 true true -1 195 14 180 36 166 40 153 53 140 82 131 134 133 159 126 188 115 227 108 236 102 238 98 268 86 269 92 281 87 269 103 269 113
-
 x
 false
 0
@@ -1021,6 +477,9 @@ Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
 NetLogo 5.2.0
 @#$#@#$#@
+set density 60.0
+setup
+repeat 180 [ go ]
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
@@ -1037,5 +496,5 @@ Line -7500403 true 150 150 90 180
 Line -7500403 true 150 150 210 180
 
 @#$#@#$#@
-1
+0
 @#$#@#$#@
