@@ -1,39 +1,44 @@
-import junit.framework.TestCase;
 
 
-public class TestFull extends TestCase {
+public class TestFull extends BaseTest {
 	
 	public TestFull(){
 		super();
-		
 		try {
-			FullNetwork.run(new String[0], "10", "0.1");
+			Network.run(new String[0], "Full Network", "10", "0.3");
 		} catch(Exception e) {
 			System.err.println(e.getMessage());
 		}
 	}
 
-	public void testNumberofTicksinFull() {	
+	@Override
+	public void testNumberofTicks() {
 		try {
-			assertEquals(26,FullNetwork.nbOfTicks);
+			assertEquals(24,Network.nbOfTicks);
 		} catch(Exception e) {
 			fail(e.getMessage());
 		}
+		
+	}
+
+	@Override
+	public void testConvergenceValue() {
+		try {
+			assertEquals(46.63,Network.convergenceValue, 0.0001);
+		} catch(Exception e) {
+			fail(e.getMessage());
+		}
+		
+	}
+
+	@Override
+	public void testInfluenceValue() {
+		try {
+			assertEquals(0.52,Network.influenceValue, 0.0001);
+		} catch(Exception e) {
+			fail(e.getMessage());
+		}
+		
 	}
 	
-	public void testConvergenceValueinFull() {
-		try {
-			assertEquals(25,FullNetwork.convergenceValue, 0.0001);
-		} catch(Exception e) {
-			fail(e.getMessage());
-		}
-	}
-	
-	public void testInfluenceValueinFull() {	
-		try {
-			assertEquals(0.94,FullNetwork.influenceValue, 0.0001);
-		} catch(Exception e) {
-			fail(e.getMessage());
-		}
-	}
 }

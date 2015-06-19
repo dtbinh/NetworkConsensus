@@ -1,37 +1,39 @@
-import junit.framework.TestCase;
 
 
-public class TestRingLessSpoke extends TestCase {
+public class TestRingLessSpoke extends BaseTest {
 	
 	public TestRingLessSpoke(){
 		super();
 		
 		try {
-			RingNetwork.run(new String[0], "10", "0.3", "1");
+			Network.run(new String[0], "Ring Network Less Spokes", "10", "0.3");
 		} catch(Exception e) {
 			System.err.println(e.getMessage());
 		}
 	}
 	
-	public void testNumberofTicksinRing() {	
+	@Override
+	public void testNumberofTicks() {	
 		try {
-			assertEquals(157,RingNetwork.nbOfTicks);
+			assertEquals(157, Network.nbOfTicks);
 		} catch(Exception e) {
 			fail(e.getMessage());
 		}
 	}
 	
-	public void testConvergenceValueinRing() {
+	@Override
+	public void testConvergenceValue() {
 		try {
-			assertEquals(28.86,RingNetwork.convergenceValue, 0.0001);
+			assertEquals(28.86, Network.convergenceValue, 0.0001);
 		} catch(Exception e) {
 			fail(e.getMessage());
 		}
 	}
 	
-	public void testInfluenceValueinRing() {	
+	@Override
+	public void testInfluenceValue() {	
 		try {
-			assertEquals(0.32,RingNetwork.influenceValue, 0.0001);
+			assertEquals(0.32, Network.influenceValue, 0.0001);
 		} catch(Exception e) {
 			fail(e.getMessage());
 		}

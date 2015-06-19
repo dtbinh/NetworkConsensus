@@ -2,27 +2,20 @@ import java.text.NumberFormat;
 
 import org.nlogo.app.App;
 
-public class RadialNetwork {
-	
+
+public class Network {
 	private static String nbOfAgents = "10";
-	private static String epsilon = "0.3";
-	//private final float convergent_factor = 0.00001f;
+	private static String epsilon = "0.1";
+	private static String networkName = "";
+	//private String convergent_factor = "0.00001";
 	public static int nbOfTicks;
-	public static float nodeCentral;
-	public static float nodeSatellite;
+	public float nodeCentral;
+	public float nodeSatellite;
 	public static float convergenceValue;
 	public static float influenceValue;
 	
-	RadialNetwork(){
-		
-	}
-	
-	RadialNetwork(int agents, float eps){
-		nbOfAgents = Integer.toString(agents);
-		epsilon = Float.toString(eps);
-	}
-	
-	public static void run(String[] args, final String agents, final String eps){
+	public static void run(String[] args, final String network, final String agents, final String eps){
+
 		App.main(args);
 	    try {
 	      java.awt.EventQueue.invokeAndWait(
@@ -32,13 +25,16 @@ public class RadialNetwork {
 	          App.app().open(
 	        "models/"
 	        + "NetworkConsensus.nlogo");
+	          networkName = network;
 	          nbOfAgents = agents;
 	          epsilon = eps;
 	        }
 	        catch(java.io.IOException ex) {
 	          ex.printStackTrace();
 	        }}});
-	      App.app().command("set network-type? \"Radial Network\"");
+	      
+	      System.out.println("Test " + networkName + " with number of agents " + nbOfAgents + " and epsilon " + epsilon);
+	      App.app().command("set network-type? \"" + networkName + "\"");
 	      App.app().command("set total-agents " + nbOfAgents);
 	      App.app().command("set head's-value 100");
 	      App.app().command("set other's-value 10");
@@ -48,6 +44,7 @@ public class RadialNetwork {
 	      App.app().command("set print-log-header true");
 	      App.app().command("setup");
 	      App.app().command("go");
+	      
 	      /* Computer and print result */
 	      NumberFormat nf = NumberFormat.getInstance();
 	      nbOfTicks = nf.parse("" + App.app().report("ticks")).intValue() + 1;
@@ -61,9 +58,9 @@ public class RadialNetwork {
 	      ex.printStackTrace();
 	    }
 	}
-
-//	public static void main(String[] args) {
-//		RadialNetwork.run(args, "10", "0.3");
-//	}
-
+	
+	public static void main(String[] args) {
+		//Network network = new Network("Full Network", 10, (float)0.1);
+		//network.run();
+	}
 }
