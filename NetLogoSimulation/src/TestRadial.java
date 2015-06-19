@@ -1,39 +1,39 @@
-import junit.framework.TestCase;
 
 
-public class TestRadial extends TestCase {
-	
-	//protected RadialNetwork radialNetwork;
+public class TestRadial extends BaseTest {
 	
 	public TestRadial(){
 		super();
 		
 		try {
-			RadialNetwork.run(new String[0], "12", "0.3");
+			Network.run(new String[0], "Radial Network", "12", "0.3");
 		} catch(Exception e) {
 			System.err.println(e.getMessage());
 		}
 	}
 
-	public void testNumberofTicksinRadial() {	
+	@Override
+	public void testNumberofTicks() {	
 		try {
-			assertEquals(2,RadialNetwork.nbOfTicks);
+			assertEquals(2, Network.nbOfTicks);
 		} catch(Exception e) {
 			fail(e.getMessage());
 		}
 	}
 	
-	public void testConvergenceValueinRadial() {
+	@Override
+	public void testConvergenceValue() {
 		try {
-			assertEquals(73.0,RadialNetwork.convergenceValue, 0.0001);
+			assertEquals(73.0, Network.convergenceValue, 0.0001);
 		} catch(Exception e) {
 			fail(e.getMessage());
 		}
 	}
 	
-	public void testInfluenceValueinRadial() {	
+	@Override
+	public void testInfluenceValue() {	
 		try {
-			assertEquals(0.81,RadialNetwork.influenceValue, 0.0001);
+			assertEquals(0.81, Network.influenceValue, 0.0001);
 		} catch(Exception e) {
 			fail(e.getMessage());
 		}
