@@ -27,9 +27,17 @@ to report-error [error-code]
   let message ""
   
   ifelse error-code = 1 [ set message "[ERROR 1] The network graph is not connected" ]
-  [ ifelse error-code = 2 [ set message "[ERROR 2] Incorrect influence-link weights" ] 
-    [ ifelse error-code = 3 [set message "[ERROR 3] Number of edges must be less than number of agents in network"] 
-      [ if error-code = 4 [set message "[ERROR 4] Total spokes must be less than number of agents in network"] ]]]
+  [ 
+  ifelse error-code = 2 [ set message "[ERROR 2] Incorrect influence-link weights" ] 
+  [ 
+  ifelse error-code = 3 [set message "[ERROR 3] Number of edges must be less than number of agents in network"] 
+  [ 
+  ifelse error-code = 4 [set message "[ERROR 4] Total spokes must be less than number of agents in network"]
+  [
+  ifelse error-code = 5 [set message "[ERROR 5] Number of groups must be a positive number"]
+  [
+  if error-code = 6 [set message "[ERROR 6] Group id must be a positive number inferior or equal to the number of groups"]  
+  ]]]]]
   
   user-message message
   
