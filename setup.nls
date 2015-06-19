@@ -31,7 +31,11 @@ to edit-group [adjacency-matrix]
   
   set p 2
   
-  ;setup patches
+  ; verifies total-groups and group-id
+  if (total-groups <= 0) [ report-error 5 stop ]
+  if (group-id <= 0) or (group-id > total-groups) [ report-error 6 stop ]
+  
+  ; setup patches
   setup-region
 
   ifelse network-type? != "Scale-free Network"[  
@@ -49,44 +53,12 @@ to edit-group [adjacency-matrix]
   
   ; adjust the agent values according to their type
   adjust-agent-type-properties
-    
-  ; set weights for all nodes and links
-  setup-influence-links-weight
-  
-  ; display labels if necessary
-  display-labels
+      
+  ask turtles [ set label who set size 1.5 ]
   
   ; block simulations making re-validation necessary
   clear-ticks
   
-end
-
-; Sets the default shape of turtles and creates new or kills unnecessary
-; turtles depending on the group-id and the given number of agents.
-
-to adjust-agents
-  ; set the default shape as "circle"
-  set-default-shape turtles "circle" 
-  
-  ; get number of turtles with the given group-id
-  let number-of-turtles-in-group count turtles with [my-group = group-id]
-  
-  ; create/kill turtles if the number of turtles with the given group-id is different
-  ; from the given number of agents
-  ifelse (number-of-turtles-in-group < number-of-agents) [
-    create-turtles (number-of-agents - number-of-turtles-in-group) [ set my-group group-id ]
-  ]
-  [
-    ask max-n-of (number-of-turtles-in-group - number-of-agents) turtles with [ my-group = group-id ] [who] [ die ]
-  ]
-  
-end
-
-; Sets nodes properties depending on their type.
-
-to adjust-agent-type-properties
-  ask turtles with [ agent-type = 0 ] [ set color blue set self-val other's-value ]
-  ask turtles with [ agent-type = 1 ] [ set color red set self-val head's-value ]
 end
 
 ; Move nodes to different groups, set their position and create all
@@ -131,17 +103,63 @@ to adjust-network [adjacency-matrix]
         [report-error 4]
         [setup-custom-wheel-network group-nodes]
     ][
-    ifelse network-type? = "Random Network" [
+    if network-type? = "Random Network" [
       setup-random-network group-nodes
-    ][
-    ;if network-type? = "Scale-fee Network"[
-      ;setup-scale-free-network]
-    ]]]]]
+    ]
+    ]]]]
   ]
   
   ; Moves the group
   move-to-agent group-nodes centralAgent
   
+end
+
+;----------------------------------------------------------------------------;
+;    Agents setup                                                            ;
+;----------------------------------------------------------------------------;
+
+; Sets the default shape of turtles and creates new or kills unnecessary
+; turtles depending on the group-id and the given number of agents.
+
+to adjust-agents
+  
+  ; set the default shape as "circle"
+  set-default-shape turtles "circle" 
+  
+  
+  ; get number of turtles with the given group-id
+  let number-of-turtles-in-group count turtles with [my-group = group-id]
+  
+  ; create/kill turtles if the number of turtles with the given group-id is different
+  ; from the given number of agents
+  ifelse (number-of-turtles-in-group < number-of-agents) [
+    create-turtles (number-of-agents - number-of-turtles-in-group) [ set my-group group-id ]
+  ]
+  [
+    ask max-n-of (number-of-turtles-in-group - number-of-agents) turtles with [ my-group = group-id ] [ who ] [ die ]
+  ]
+  
+end
+
+; Sets nodes properties depending on their type.
+
+to adjust-agent-type-properties
+  ask turtles with [ agent-type = 0 ] [ set color blue set self-val other's-value ]
+  ask turtles with [ agent-type = 1 ] [ set color red set self-val head's-value ]
+end
+
+to convert-into-head [nodes]
+  foreach nodes [
+    ask turtle ? [ set agent-type 1 ]
+  ]
+  adjust-agent-type-properties
+end
+
+to convert-into-others [nodes]
+  foreach nodes [
+    ask turtle ? [ set agent-type 0 ]
+  ]
+  adjust-agent-type-properties
 end
 
 ;----------------------------------------------------------------------------;
@@ -210,58 +228,12 @@ end
 
 to setup-region
   
+  let world-size (ceiling sqrt total-groups) * 7
+  let window-length world-width * patch-size
+  resize-world (0 - world-size) world-size (0 - world-size) world-size
+  set-patch-size window-length / world-width
   ask patches [set belongs-to nobody]
 
-end
-
-;----------------------------------------------------------------------------;
-;    Weights setup                                                           ;
-;----------------------------------------------------------------------------;
-
-; Calculates the weight of each node and link in the network
-
-to setup-influence-links-weight 
-  let head-weight (1 - epsilon)
-  let others-weight epsilon
- 
-  let norm 0
-  let count-of-neighbors 0
-  
-  ask turtles with [agent-type = 1] [
-    let this-turtle self
-    set count-of-neighbors count my-in-influence-links
-    ask my-in-influence-links [ set weight precision (others-weight / count-of-neighbors) 100 ]
-  ]
-  
-  ask turtles with [agent-type = 0] [
-    let this-turtle self
-    set count-of-neighbors count my-in-influence-links
-    let links-from-head my-in-influence-links with [ [agent-type] of end1 = 1 ]
-    let links-from-others my-in-influence-links with [ [agent-type] of end1 = 0 ]
-    set norm (head-weight * count links-from-head) + (others-weight * count links-from-others)
-    set norm norm + ifelse-value (agent-type = 1) [head-weight][others-weight]
-    ask links-from-head [ set weight precision (head-weight / norm) 100 ]
-    ask links-from-others [ set weight precision (others-weight / norm) 100 ]
-  ]
-  
-;  Modèle normalisé
-;  ask turtles [
-;    let this-turtle self
-;    set count-of-neighbors count my-in-influence-links
-;    let links-from-head my-in-influence-links with [ [agent-type] of end1 = 1 ]
-;    let links-from-others my-in-influence-links with [ [agent-type] of end1 = 0 ]
-;    set norm (head-weight * count links-from-head) + (others-weight * count links-from-others)
-;    set norm norm + ifelse-value (agent-type = 1) [head-weight][others-weight]
-;    ask links-from-head [ set weight precision (head-weight / norm) 100 ]
-;    ask links-from-others [ set weight precision (others-weight / norm) 100 ]
-;  ]
-  
-  
-  
-  ask turtles [ 
-    set self-weight (1 - get-in-neighbour-weights)
-  ]
-  
 end
 
 

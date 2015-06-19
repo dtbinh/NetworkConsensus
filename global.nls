@@ -104,8 +104,10 @@ globals [
   ; simulation variables for variations (eps = epsilon, agt = number of agents)
   eps
   agt
-  ;Boolean to check if header of out file is already printed
+  
+  ; Boolean to check if header of out file is already printed
   printed-head
+  
 ] 
 
 ;----------------------------------------------------------------------------;
@@ -117,4 +119,76 @@ to display-labels
   if show-self-value [
     ask turtles [ set label round self-val ]
   ]
+end
+
+to-report center-patch-of-group [id-group]
+  let slotsPerRow ceiling sqrt total-groups 
+  let slotSize world-width / slotsPerRow
+  let slotRow (floor (id-group / slotsPerRow))
+  if id-group mod slotsPerRow = 0 [ set slotRow slotRow - 1 ]
+  let slotColumn (id-group mod slotsPerRow) - 1
+  if slotColumn = -1 [ set slotColumn slotsPerRow - 1 ]
+  let patchX (min-pxcor) + slotColumn * slotSize + slotSize / 2 - 1
+  let patchY (max-pycor) - slotRow * slotSize - slotSize / 2 + 1
+  report patch patchX patchY
+end
+
+to-report adjacency-matrices
+  
+  let adjacency-matrices-list []
+  
+  ; group-id iteration
+  let id-group 1
+  
+  repeat total-groups [
+      
+      ; retrieve group
+      let turtle-group sort turtles with [my-group = id-group]
+      
+      let adjacency-matrix nobody
+      
+      if not empty? turtle-group [
+        
+        set adjacency-matrix []
+        
+        ; write adjacency matrix
+        let row 0
+        while [row < length turtle-group] [
+          let matrix-row []
+          let column 0
+          while [column < length turtle-group] [
+            ifelse (row != column)
+            [
+              let node-link [in-influence-link-from item column turtle-group] of item row turtle-group
+              set matrix-row lput (ifelse-value (node-link = nobody) [ 0 ] [ 1 ]) matrix-row
+            ] 
+            [
+              set matrix-row lput 0 matrix-row
+            ]
+            set column column + 1
+          ]
+          set row row + 1
+          set adjacency-matrix lput matrix-row adjacency-matrix
+        ]
+      ]
+      
+      set adjacency-matrices-list lput adjacency-matrix adjacency-matrices-list
+      set id-group id-group + 1
+    ]
+  
+    report adjacency-matrices-list
+  
+end
+
+to-report inter-group-links
+  
+  let inter-group-links-list []
+  ask influence-links with [ inter-group = true ] [
+    let inter-group-link []
+    set inter-group-link lput ([who] of end1) inter-group-link
+    set inter-group-link lput ([who] of end2) inter-group-link
+    set inter-group-links-list lput inter-group-link inter-group-links-list 
+  ]
+  report inter-group-links-list
+  
 end

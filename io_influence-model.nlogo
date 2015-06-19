@@ -41,11 +41,11 @@ __includes [
 GRAPHICS-WINDOW
 585
 65
-1168
-669
-32
-32
-8.82
+1173
+674
+7
+7
+38.6
 1
 10
 1
@@ -55,10 +55,10 @@ GRAPHICS-WINDOW
 0
 0
 1
--32
-32
--32
-32
+-7
+7
+-7
+7
 1
 1
 1
@@ -67,9 +67,9 @@ ticks
 
 BUTTON
 235
-210
+250
 320
-243
+283
 Edit group
 edit-group nobody
 NIL
@@ -137,11 +137,11 @@ PENS
 
 INPUTBOX
 10
-315
+355
 125
-375
+415
 number-of-agents
-8
+10
 1
 0
 Number
@@ -198,30 +198,30 @@ is-vary-eps?
 
 CHOOSER
 140
-315
+355
 320
-360
+400
 network-type?
 network-type?
 "Radial Network" "Full Network" "Ring Network" "Custom Wheel" "Random Network" "Scale-free Network"
-1
+5
 
 INPUTBOX
 10
-415
+455
 155
-475
+515
 total-spokes
-4
+1
 1
 0
 Number
 
 INPUTBOX
 175
-415
+455
 320
-475
+515
 number-of-neighbors
 2
 1
@@ -230,24 +230,24 @@ Number
 
 SLIDER
 10
-515
+555
 315
-548
+588
 random-probability
 random-probability
 0
 1
-0.51
+0.09
 0.01
 1
 NIL
 HORIZONTAL
 
 TEXTBOX
-730
-25
-860
-46
+700
+20
+830
+41
 SIMULATION
 20
 0.0
@@ -265,9 +265,9 @@ SETUP
 
 TEXTBOX
 8
-185
+225
 173
-203
+243
 Create & Edit Topologies
 13
 0.0
@@ -285,9 +285,9 @@ General parameters
 
 TEXTBOX
 10
-290
+330
 160
-308
+348
 Topology Parameters
 13
 0.0
@@ -295,9 +295,9 @@ Topology Parameters
 
 TEXTBOX
 10
-390
+430
 185
-416
+456
 Custom Wheel Network Parameters
 10
 0.0
@@ -312,7 +312,7 @@ epsilon
 epsilon
 0
 1
-0.8
+0.5
 0.01
 1
 NIL
@@ -340,9 +340,9 @@ Initial opinion values
 
 TEXTBOX
 10
-490
+530
 160
-508
+548
 Random Network Parameters
 10
 0.0
@@ -380,9 +380,9 @@ Output file
 
 TEXTBOX
 10
-660
+700
 160
-678
+718
 Load & Save Topology
 13
 0.0
@@ -390,9 +390,9 @@ Load & Save Topology
 
 BUTTON
 10
-690
+730
 150
-723
+763
 Load topology file
 load-file user-file
 NIL
@@ -407,9 +407,9 @@ NIL
 
 BUTTON
 170
-690
+730
 310
-723
+763
 Save topology file
 save-file user-new-file
 NIL
@@ -424,9 +424,9 @@ NIL
 
 BUTTON
 235
-250
+290
 320
-283
+323
 Clear all
 clear-all
 NIL
@@ -441,9 +441,9 @@ NIL
 
 SLIDER
 140
-595
+635
 312
-628
+668
 gamma
 gamma
 0
@@ -456,20 +456,20 @@ HORIZONTAL
 
 INPUTBOX
 10
-585
+625
 125
-645
+685
 num-edges
-2
+3
 1
 0
 Number
 
 TEXTBOX
 10
-565
+605
 170
-583
+623
 Scale-free Network Parameters
 10
 0.0
@@ -477,11 +477,11 @@ Scale-free Network Parameters
 
 INPUTBOX
 8
-210
+250
 88
-270
+310
 total-groups
-10
+1
 1
 0
 Number
@@ -603,14 +603,14 @@ TEXTBOX
 
 SLIDER
 100
-210
+250
 225
-243
+283
 group-id
 group-id
 1
 total-groups
-6
+1
 1
 1
 NIL
@@ -632,7 +632,7 @@ INPUTBOX
 575
 225
 convergence-precision
-0.01
+0.1
 1
 0
 Number
@@ -675,6 +675,31 @@ NIL
 NIL
 NIL
 1
+
+TEXTBOX
+10
+160
+110
+178
+Stubbornness factor
+10
+0.0
+1
+
+SLIDER
+10
+180
+135
+213
+theta
+theta
+0
+0.99
+0
+0.01
+1
+NIL
+HORIZONTAL
 
 @#$#@#$#@
 ## WHAT IS IT?

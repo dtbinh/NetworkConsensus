@@ -16,137 +16,89 @@
 ;loads a topology from a file
 to load-file [file-name]
   
-  ; reset model
-  clear-all
-  setup-region
-  
-  ; opens file
-  file-open file-name
-  
-  ; gets epsilon value
-  set epsilon file-read
-  
-  ; gets head's value and others's values
-  set head's-value file-read
-  set other's-value file-read
-  
-  ; gets total topologies
-  set total-groups file-read
-  
-  ; group iteration
-  set group-id 1
-  repeat total-groups [
+  if file-name != false [
     
-    let adjacency-matrix file-read
-    set number-of-agents length adjacency-matrix
-         
-    edit-group adjacency-matrix
-      
-    set group-id group-id + 1
-  ]
-  
-  set group-id 1
-  
-  ; complementary links
-  while [not file-at-end?] [
-      let clink file-read
-      let first-turtle turtle-with-group-and-internal-id item 0 (item 0 clink) item 1 (item 0 clink)
-      let second-turtle turtle-with-group-and-internal-id item 0 (item 1 clink) item 1 (item 1 clink)
-      ask first-turtle [ create-influence-link-to second-turtle ]
-  ]
-  
-  file-close
-  
-  ; adjust the agent values according to their type
-  adjust-agent-type-properties
-  
-  setup-influence-links-weight
+    ; reset model
+    clear-all
+   
+    ; opens file
+    file-open file-name
     
-  ; display labels if necessary
-  display-labels
+    ; get topology settings
+    set epsilon file-read
+    set head's-value file-read
+    set other's-value file-read
+    set total-groups file-read
+    
+    ; setup region
+    setup-region
+    
+    ; group iteration
+    set group-id 1
+    repeat total-groups [
+      let adjacency-matrix file-read
+      if adjacency-matrix != nobody [
+        set number-of-agents length adjacency-matrix 
+        edit-group adjacency-matrix
+      ]
+      set group-id group-id + 1
+    ]
+    set group-id 1
+    
+    ; inter-group links
+    let inter-group-links-list file-read
+    foreach inter-group-links-list [
+      ask turtle (item 0 ?) [ create-influence-link-to turtle (item 1 ?) ]
+    ]
+    
+    file-close
+    
+    ; adjust the agent values according to their type
+    adjust-agent-type-properties
+    
+    setup-influence-links-weight
+    
+  ]
     
 end
 
 ; saves topology into a new file
 to save-file [file-name]
     
-  ; creates and open new file
-  file-open user-new-file
-  
-  ; write epsilon value
-  file-print "; Set epsilon value"
-  file-print epsilon
-  file-print ""
-  
-  ; write head's value
-  file-print "; Set head's value"
-  file-print head's-value
-  file-print ""
-  
-  ; write others' value
-  file-print "; Set others' value"
-  file-print other's-value
-  file-print ""
-  
-  ; write group ids
-  file-print "; Set total groups"
-  file-print total-groups
-  file-print ""
-  
-  file-print "; For each group, set adjacency matrix"
-  file-print ""
-  
-  ; group-id iteration
-  set group-id 1
-  repeat total-groups [
+  ; checks if a file-name has been provided
+  if file-name != false [
     
-       ; print header
-       file-print word "; Group " group-id
-       file-print "["
-       
-       ; retrieve group
-       let turtle-group sort turtles with [my-group = group-id]
-       
-       ; write adjacency matrix
-       let row 0
-       while [row < length turtle-group] [
-           file-type " ["
-           let column 0
-           while [column < length turtle-group] [
-             ifelse (row != column)
-             [
-                 let node-link [in-influence-link-from item column turtle-group] of item row turtle-group
-                 file-type ifelse-value (node-link = nobody) [ "0" ] [ "1" ]  
-             ] 
-             [
-                 file-type "0" 
-             ]
-             file-type ifelse-value (column != length turtle-group - 1) [ " " ][ "]" ]
-             set column column + 1
-           ]
-           file-print ""
-           set row row + 1
-       ]
-       file-print "]"
-       file-print ""
-       
-       set group-id group-id + 1
+    ; close all files
+    file-close-all
+    
+    ; delete given file if it exists
+    if file-exists? file-name [ file-delete file-name ] 
+    
+    ; creates and open new file
+    file-open file-name
+    
+    ; write topology settings
+    file-print (word "; Set epsilon value \n" epsilon "\n")
+    file-print (word "; Set head's value \n"  head's-value "\n")
+    file-print (word "; Set others' value \n" other's-value "\n")
+    file-print (word "; Set total groups \n" total-groups "\n")
+    
+    ; write adjacency-matrices and inter-group links
+    file-print "; For each group, set adjacency matrix \n"
+    let id-group 1
+    foreach adjacency-matrices [
+      file-print word "; Group " id-group
+      file-print ?
+      file-print ""
+      set id-group id-group + 1
+    ]
+    file-print "; Set inter-group links"
+    file-print inter-group-links
+    
+    ; close file
+    file-close
+    
   ]
-  
-  file-print "; Set inter-group links"
-
-  ask influence-links with [ inter-group = true ] [
-    file-type "[["
-    file-type word [my-group] of end1 " "
-    file-type [internal-group-id] of end1
-    file-type "] ["
-    file-type word [my-group] of end2 " "
-    file-type [internal-group-id] of end2
-    file-print "]]" 
-  ]
-  
-  ; close file
-  file-close
   
 end
 

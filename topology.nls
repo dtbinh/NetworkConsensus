@@ -169,7 +169,7 @@ to setup-scale-free-network
   ]
   
   let setOfAgents turtles with [my-group = group-id]
-  ;layout-circle (sort setOfAgents) 5
+  layout-circle (but-first sort setOfAgents) 5
   move-to-agent setOfAgents first-node
 end
 
@@ -256,9 +256,10 @@ to-report setup-central-agent-from-list [ agent-list ]
   let centralAgent first sort agent-list
   ask centralAgent [ set group-size count agent-list]
   ask centralAgent [ 
-    move-to one-of patches with [not any? other patches in-radius 5 with [belongs-to != nobody]] 
-    set group patches in-radius group-size
-    ask group [set belongs-to myself]
+    ;move-to one-of patches with [not any? other patches in-radius 5 with [belongs-to != nobody]] 
+    move-to center-patch-of-group group-id
+    ;set group patches in-radius group-size
+    ;ask group [set belongs-to myself]
     set agent-type 1
   ]
   report centralAgent
@@ -267,9 +268,10 @@ end
 to setup-central-agent [ centralAgent ]
   ask centralAgent [ set group-size number-of-agents]
   ask centralAgent [ 
-    move-to one-of patches with [not any? other patches in-radius 5 with [belongs-to != nobody]] 
-    set group patches in-radius group-size
-    ask group [set belongs-to myself]
+    ;move-to one-of patches with [not any? other patches in-radius 5 with [belongs-to != nobody]] 
+    move-to center-patch-of-group group-id
+;    set group patches in-radius group-size
+;    ask group [set belongs-to myself]
     set agent-type 1
   ]
 end
