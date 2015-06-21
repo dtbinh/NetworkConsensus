@@ -23,6 +23,7 @@ to-report simulate-varying-agents
       set number-of-agents agt
       edit-group nobody
       reset-ticks
+      set simulation-ready true
   ]
   report false
 
@@ -36,6 +37,7 @@ to-report simulate-varying-epsilon
     setup-influence-links-weight
     adjust-agent-type-properties
     reset-ticks
+    set simulation-ready true
   ]
   report false
   
@@ -44,7 +46,7 @@ end
 to-report simulate
     
   setup-influence-links-weight
-  if not check-weights [ report-error 2 stop ]
+  if not check-weights [ report-error 2 report true ]
   
   let convergence (([self-val] of max-one-of turtles [self-val]) - ([self-val] of min-one-of turtles [self-val]))
  
@@ -59,7 +61,8 @@ to-report simulate
     ask turtles[
       update-self-val
     ]
-    display-labels
+    
+    update-labels
    
     tick
     
@@ -78,46 +81,53 @@ to validate-simulation
   set printed-head false
   ; validate network and simulation options to avoid inconsistencies   
   if (validate-network and validate-simulation-options) [
-    adjust-agent-type-properties
-    display-labels
-    reset-ticks
+    if not simulation-ready [
+      adjust-agent-type-properties
+      update-labels
+      set simulation-ready true
+      set cumulated-ticks cumulated-ticks + ticks
+      reset-ticks
+    ]
   ]
-  
 end
 
 to-report validate-network
   
   ; check if network is connected
   if nw:mean-path-length = false [ report-error 1 report false ]
+  
+  setup-influence-links-weight
+  if not check-weights [ report false ]
    
   report true
   
 end
 
 to-report check-weights
+  let error-occurred false
   ask turtles[
     let in-weight-sum get-in-neighbour-weights
     set in-weight-sum (in-weight-sum + self-weight)
     ;type "check-weights: agent " type [who] of self type ": " type in-weight-sum print ""  
-    if in-weight-sum != 1[
-      ;type "Warning --> check-weights: agent " type [who] of self type ": " type in-weight-sum type ". should be 1." print "" 
+    if precision in-weight-sum 15 != 1 [
+      type "Warning --> check-weights: agent " type [who] of self type ": " type in-weight-sum type ". should be 1." print "" 
       report-error 2
-      report false
+      set error-occurred true
+      stop
     ]
-    
     ;type "sum-in-weights: agent " type [who] of self type ": " type get-in-neighbour-weights print ""
     ;type "self-weight: agent " type [who] of self type ": " type self-weight print "" 
   ]
-  report true
+  report not error-occurred
 end
 
 to go
   
-  ifelse (is-vary-agents?) [ if simulate-varying-agents [ stop ] ]
+  ifelse (is-vary-agents?) [ if simulate-varying-agents [ set simulation-ready false stop ] ]
   [
-    ifelse (is-vary-eps?) [ if simulate-varying-epsilon [ stop ] ] 
+    ifelse (is-vary-eps?) [ if simulate-varying-epsilon [ set simulation-ready false stop ] ] 
     [ 
-      if simulate [ stop ]
+      if simulate [ set simulation-ready false stop ]
     ]
   ]
  
@@ -141,11 +151,35 @@ end
 to update-self-val
   let old-self-val self-val
   set self-val (in-vals + (old-self-val * self-weight))
+  ifelse change-colors [
+    let redness 255 * (self-val - other's-value) / (head's-value - other's-value)
+    let blueness 255 * (head's-value - self-val) / (head's-value - other's-value)
+    set color rgb redness 0 blueness
+  ][
+    ask turtles with [agent-type = 1] [set color red]
+    ask turtles with [agent-type = 0] [set color blue]
+  ]
   
-  let redness 255 * (self-val - other's-value) / (head's-value - other's-value)
-  let blueness 255 * (head's-value - self-val) / (head's-value - other's-value)
-  set color rgb redness 0 blueness
   ;type "agent " type [who] of self type " has self-val: " type [self-val] of self print ""
+end
+
+to update-labels
+  let label-text ""
+  ask turtles [
+    ifelse node-label = "Node ID" [
+      set label-text identifier
+    ][
+    ifelse node-label = "Node Value" [
+      set label-text precision self-val 0 
+    ][
+    ifelse node-label = "Group ID" [
+      set label-text my-group
+    ][
+    if node-label = "Closeness centrality" [
+      carefully [ set label-text precision nw:weighted-closeness-centrality "weight" 2 ][ set label-text "?"]
+    ]]]]
+    set label label-text
+  ]
 end
 
 to-report validate-simulation-options
@@ -172,101 +206,135 @@ end
 ; Calculates the weight of each node and link in the network
 
 to setup-influence-links-weight 
-  let head-weight (1 - epsilon)
-  let others-weight epsilon
  
-  let norm 0
-  let count-of-neighbors 0
+  ; Calculate links' weight
+  ifelse weighting = "Epsilon weighting" [
+    setup-epsilon-weighting
+  ][
+  ifelse weighting = "Normalized epsilon weighting" [
+    setup-normalized-epsilon-weighting
+  ][
+  if weighting = "Degree centrality weighting" [
+    setup-degree-centrality-weighting
+  ]]]
   
+  ; Calculate nodes' weight
+  ask turtles [set self-weight (1 - get-in-neighbour-weights)]
+  
+  ; Set stubbornness normalization
+  if theta > 0 [setup-stubbornness-normalization]
+  
+end
+
+to setup-epsilon-weighting
+ 
+  ; Set weight proportion between head and others
+  let head-weight (1 - 1 * epsilon)
+  let others-weight (1 * epsilon)
+  
+  ; Set head nodes' links
   ask turtles with [agent-type = 1] [
-    let this-turtle self
-    set count-of-neighbors count my-in-influence-links
-    set norm head-weight
-    ask my-in-influence-links [
-      let stubbornness precision (1 - theta * abs (([self-val] of end1 - [self-val] of end2) / (head's-value - other's-value))) 2
-      set norm norm + stubbornness * (others-weight / count-of-neighbors)
-    ]
-    ask my-in-influence-links [
-      let stubbornness precision (1 - theta * abs (([self-val] of end1 - [self-val] of end2) / (head's-value - other's-value))) 2
-      set weight precision (stubbornness * (others-weight / count-of-neighbors) / norm) 100 
-    ]
+    let count-of-neighbors count my-in-influence-links
+    ask my-in-influence-links [set weight (others-weight / count-of-neighbors)]
   ]
   
+  ; Set other nodes' links
   ask turtles with [agent-type = 0] [
-    let this-turtle self
-    set count-of-neighbors count my-in-influence-links
-    set norm 0
+    
+    let count-of-neighbors count my-in-influence-links
+    let norm 0
     
     ; Retrieve links
-    let links-from-head my-in-influence-links with [ [agent-type] of end1 = 1 ]
-    let links-from-others my-in-influence-links with [ [agent-type] of end1 = 0 ]
+    let links-from-head my-in-influence-links with [[agent-type] of end1 = 1]
+    let links-from-others my-in-influence-links with [[agent-type] of end1 = 0]
     
+    ; Calculate norm
     set norm (head-weight * count links-from-head) + (others-weight * count links-from-others)
-    set norm norm + ifelse-value (agent-type = 1) [head-weight][others-weight]
-    ask links-from-head [ set weight precision (head-weight / norm) 100 ]
-    ask links-from-others [ set weight precision (others-weight / norm) 100 ]
-    set norm (1 - get-in-neighbour-weights)
+    set norm norm + others-weight
     
-    ; Calculate second norm considering stubbornness
-    ask links-from-head [
-      let stubbornness precision (1 - theta * abs (([self-val] of end1 - [self-val] of end2) / (head's-value - other's-value))) 2
-      set norm norm + stubbornness * weight
-    ]
-    ask links-from-others [ 
-      let stubbornness precision (1 - theta * abs (([self-val] of end1 - [self-val] of end2) / (head's-value - other's-value))) 2
-      set norm norm + stubbornness * weight
-    ]
- 
-    ; Calculate weights
-    ask links-from-head [
-      let stubbornness precision (1 - theta * abs (([self-val] of end1 - [self-val] of end2) / (head's-value - other's-value))) 2
-      set weight precision (stubbornness * weight / norm) 100 
-    ]
-    ask links-from-others [
-      let stubbornness precision (1 - theta * abs (([self-val] of end1 - [self-val] of end2) / (head's-value - other's-value))) 2
-      set weight precision (stubbornness * weight / norm) 100 
-    ]
- 
- 
- 
-    
-;    ; Calculate norm considering stubbornness
-;    ask links-from-head [
-;      let stubbornness precision (1 - theta * abs (([self-val] of end1 - [self-val] of end2) / (head's-value - other's-value))) 2
-;      set norm norm + stubbornness * head-weight
-;    ]
-;    ask links-from-others [ 
-;      let stubbornness precision (1 - theta * abs (([self-val] of end1 - [self-val] of end2) / (head's-value - other's-value))) 2
-;      set norm norm + stubbornness * others-weight
-;    ]
-;    set norm norm + others-weight
-;    
-;    ; Calculate weights
-;    ask links-from-head [
-;      let stubbornness precision (1 - theta * abs (([self-val] of end1 - [self-val] of end2) / (head's-value - other's-value))) 2
-;      set weight precision (stubbornness * head-weight / norm) 100 
-;    ]
-;    ask links-from-others [
-;      let stubbornness precision (1 - theta * abs (([self-val] of end1 - [self-val] of end2) / (head's-value - other's-value))) 2
-;      set weight precision (stubbornness * others-weight / norm) 100 
-;    ]
+    ; Set weights
+    ask links-from-head [set weight (head-weight / norm)]
+    ask links-from-others [set weight (others-weight / norm)]
+       
   ]
   
-;  Modèle normalisé
-;  ask turtles [
-;    let this-turtle self
-;    set count-of-neighbors count my-in-influence-links
-;    let links-from-head my-in-influence-links with [ [agent-type] of end1 = 1 ]
-;    let links-from-others my-in-influence-links with [ [agent-type] of end1 = 0 ]
-;    set norm (head-weight * count links-from-head) + (others-weight * count links-from-others)
-;    set norm norm + ifelse-value (agent-type = 1) [head-weight][others-weight]
-;    ask links-from-head [ set weight precision (head-weight / norm) 100 ]
-;    ask links-from-others [ set weight precision (others-weight / norm) 100 ]
-;  ]
+end
+
+to setup-normalized-epsilon-weighting
   
-  ask turtles [ 
+  ; Set weight proportion between head and others
+  let head-weight (1 - epsilon)
+  let others-weight epsilon
+  
+  ask turtles [
+    
+    let count-of-neighbors count my-in-influence-links
+    let norm 0
+    
+    ; Retrieve links
+    let links-from-head my-in-influence-links with [[agent-type] of end1 = 1]
+    let links-from-others my-in-influence-links with [[agent-type] of end1 = 0]
+    
+    ; Calculate norm
+    set norm (head-weight * count links-from-head) + (others-weight * count links-from-others)
+    set norm norm + others-weight
+    
+    ; Set weights
+    ask links-from-head [set weight (head-weight / norm)]
+    ask links-from-others [set weight (others-weight / norm)]
+       
+  ]
+  
+end
+
+to setup-degree-centrality-weighting
+  
+  ask turtles [
+    
+    let norm count my-in-influence-links
+    
+    ; Calculate norm
+    ask my-in-influence-links [
+      set norm norm + count [my-in-influence-links] of end1
+    ]
+    
+    ; Set weights
+    ask my-in-influence-links [
+      set weight (count [my-in-influence-links] of end1 / norm)
+    ]
+    
+  ] 
+  
+end
+
+to setup-stubbornness-normalization
+  
+  ask turtles [
+    
+    let norm self-weight
+    
+    ask my-in-influence-links [
+      let stubbornness (1 - theta * abs (([self-val] of end1 - [self-val] of end2) / (head's-value - other's-value)))
+      set norm norm + stubbornness * weight
+    ]
+    
+    ask my-in-influence-links [
+      let stubbornness (1 - theta * abs (([self-val] of end1 - [self-val] of end2) / (head's-value - other's-value)))
+      set weight (stubbornness * weight / norm)
+    ]
+     
     set self-weight (1 - get-in-neighbour-weights)
+      
   ]
   
+end
+
+;----------------------------------------------------------------------------;
+;    Plotting                                                                ;
+;----------------------------------------------------------------------------;
+
+to draw-simulation-boundary
+  set-current-plot-pen "boundary"
+  plot plot-y-max
 end
 

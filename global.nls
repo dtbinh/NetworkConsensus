@@ -43,7 +43,10 @@ turtles-own [
   group-size
   
   ; a number indicating the type of the node
-  agent-type  
+  agent-type
+  
+  ; auxiliary identifier
+  identifier 
   
 ]
 
@@ -58,10 +61,14 @@ end
 
 to-report get-in-neighbour-weights
   let in-weight-sum 0
-  foreach sort my-in-influence-links[
-       set in-weight-sum (in-weight-sum + [weight] of ?)  
+  ask my-in-influence-links [
+    set in-weight-sum (in-weight-sum + weight)  
   ]
   report in-weight-sum 
+end
+
+to-report turtle-with-id [id]
+  report one-of turtles with [identifier = id]
 end
 
 ;----------------------------------------------------------------------------;
@@ -84,12 +91,6 @@ links-own [
 ]  
 
 ;----------------------------------------------------------------------------;
-;    Patches                                                                 ;
-;----------------------------------------------------------------------------;
-
-patches-own [ belongs-to  ]
-
-;----------------------------------------------------------------------------;
 ;    Global variables                                                        ;
 ;----------------------------------------------------------------------------;
 
@@ -98,8 +99,6 @@ globals [
   new-node  ;; the last node we created
   degrees   ;; this is an array that contains each node in
             ;; proportion to its degree
-  group-ids
-  total-agents
   
   ; simulation variables for variations (eps = epsilon, agt = number of agents)
   eps
@@ -108,18 +107,23 @@ globals [
   ; Boolean to check if header of out file is already printed
   printed-head
   
+  ; number-of-groups
+  number-of-groups
+  
+  ; Network size (max number of groups)
+  network-size
+  
+  ; Simulation ready to start
+  simulation-ready
+  
+  ; Cumulated ticks (for plotting)
+  cumulated-ticks
+  
 ] 
 
 ;----------------------------------------------------------------------------;
 ;    Auxiliary general procedures                                            ;
 ;----------------------------------------------------------------------------;
-
-to display-labels
-  ask turtles [ set label "" ]
-  if show-self-value [
-    ask turtles [ set label round self-val ]
-  ]
-end
 
 to-report center-patch-of-group [id-group]
   let slotsPerRow ceiling sqrt total-groups 
@@ -140,7 +144,7 @@ to-report adjacency-matrices
   ; group-id iteration
   let id-group 1
   
-  repeat total-groups [
+  repeat number-of-groups [
       
       ; retrieve group
       let turtle-group sort turtles with [my-group = id-group]
@@ -185,10 +189,16 @@ to-report inter-group-links
   let inter-group-links-list []
   ask influence-links with [ inter-group = true ] [
     let inter-group-link []
-    set inter-group-link lput ([who] of end1) inter-group-link
-    set inter-group-link lput ([who] of end2) inter-group-link
+    set inter-group-link lput ([identifier] of end1) inter-group-link
+    set inter-group-link lput ([identifier] of end2) inter-group-link
     set inter-group-links-list lput inter-group-link inter-group-links-list 
   ]
   report inter-group-links-list
   
 end
+
+to-report head-agents
+  report map [[identifier] of ?] sort turtles with [agent-type = 1]
+end
+
+

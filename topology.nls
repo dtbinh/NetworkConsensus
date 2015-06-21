@@ -111,12 +111,13 @@ to setup-custom-matrix-network [setOfAgents adjacency-matrix]
   
   let row 0
   let column 0
+  let number-of-agents-in-group length adjacency-matrix
   let list-agents sort setOfAgents
   
-  while [row < number-of-agents] 
+  while [row < number-of-agents-in-group] 
   [
     set column row + 1
-    while [column < number-of-agents]
+    while [column < number-of-agents-in-group]
     [
       if ((item column (item row adjacency-matrix)) = 1)
       [
@@ -136,7 +137,7 @@ end
 ;    Scale Free Network                                                      ;
 ;----------------------------------------------------------------------------;
 
-to setup-scale-free-network
+to setup-scale-free-network  
   set degrees []   ;; initialize the array to be empty
   ;; make the initial network of two nodes and an edge
   set-default-shape turtles "circle"
@@ -254,13 +255,9 @@ end
 
 to-report setup-central-agent-from-list [ agent-list ]
   let centralAgent first sort agent-list
-  ask centralAgent [ set group-size count agent-list]
-  ask centralAgent [ 
-    ;move-to one-of patches with [not any? other patches in-radius 5 with [belongs-to != nobody]] 
+  ask centralAgent [
+    set group-size count agent-list
     move-to center-patch-of-group group-id
-    ;set group patches in-radius group-size
-    ;ask group [set belongs-to myself]
-    set agent-type 1
   ]
   report centralAgent
 end
@@ -268,10 +265,7 @@ end
 to setup-central-agent [ centralAgent ]
   ask centralAgent [ set group-size number-of-agents]
   ask centralAgent [ 
-    ;move-to one-of patches with [not any? other patches in-radius 5 with [belongs-to != nobody]] 
     move-to center-patch-of-group group-id
-;    set group patches in-radius group-size
-;    ask group [set belongs-to myself]
     set agent-type 1
   ]
 end
@@ -283,14 +277,6 @@ to setup-custom-agents [nbOfAgents]
   create-turtles nbOfAgents [ set color blue ]
   ;; all turtles are initially ungrouped
   ask turtles [ set my-group -1 ]
-end
-
-to move-central-agent [centralAgent]
-  ask centralAgent [ 
-    move-to one-of patches with [not any? other patches in-radius 5 with [belongs-to != nobody or belongs-to = centralAgent]] 
-    set group patches in-radius group-size
-    ask group [set belongs-to myself]
-  ]
 end
 
 to move-to-agent [setOfAgents centralAgent]
@@ -307,33 +293,7 @@ to move-to-agent [setOfAgents centralAgent]
         while [y-cor > max-pycor] [set y-cor y-cor - delta]
         while [y-cor < min-pycor] [set y-cor y-cor + delta]
         setxy x-cor y-cor
-        ;setxy (xcor + [xcor] of centralAgent) (ycor + [ycor] of centralAgent)
       ]
-      ;move-to centralAgent
-      ;move-to one-of patches with [not any? turtles-here and belongs-to = centralAgent]
     ]
   ]
 end
-
-;to-report get-home ;; turtle procedure
-;  ;; calculate the minimum length of each side of our grid
-;  let side ceiling (sqrt (max [my-group] of turtles + 1))
-;
-;  report patch
-;           ;; compute the x coordinate
-;           (round ((world-width / side) * (my-group mod side)
-;             + min-pxcor + int (world-width / (side * 2))))
-;           ;; compute the y coordinate
-;           (round ((world-height / side) * int (my-group / side)
-;             + min-pycor + int (world-height / (side * 2))))
-;end
-
-
-
-
-
-
-
-
-
-

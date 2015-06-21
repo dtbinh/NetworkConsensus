@@ -25,9 +25,6 @@ to load-file [file-name]
     file-open file-name
     
     ; get topology settings
-    set epsilon file-read
-    set head's-value file-read
-    set other's-value file-read
     set total-groups file-read
     
     ; setup region
@@ -49,6 +46,12 @@ to load-file [file-name]
     let inter-group-links-list file-read
     foreach inter-group-links-list [
       ask turtle (item 0 ?) [ create-influence-link-to turtle (item 1 ?) ]
+    ]
+    
+    ; head agents
+    let head-agents-list file-read
+    foreach head-agents-list [
+      ask turtle-with-id ? [set agent-type 1] 
     ]
     
     file-close
@@ -78,12 +81,9 @@ to save-file [file-name]
     file-open file-name
     
     ; write topology settings
-    file-print (word "; Set epsilon value \n" epsilon "\n")
-    file-print (word "; Set head's value \n"  head's-value "\n")
-    file-print (word "; Set others' value \n" other's-value "\n")
-    file-print (word "; Set total groups \n" total-groups "\n")
+    file-print (word "; Set total groups \n" number-of-groups "\n")
     
-    ; write adjacency-matrices and inter-group links
+    ; write adjacency-matrices, inter-group links and head agents
     file-print "; For each group, set adjacency matrix \n"
     let id-group 1
     foreach adjacency-matrices [
@@ -92,8 +92,12 @@ to save-file [file-name]
       file-print ""
       set id-group id-group + 1
     ]
+    
     file-print "; Set inter-group links"
-    file-print inter-group-links
+    file-print word inter-group-links "\n"
+    
+    file-print "; Set head-agents"
+    file-print word head-agents "\n"
     
     ; close file
     file-close

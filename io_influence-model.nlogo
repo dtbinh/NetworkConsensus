@@ -41,11 +41,11 @@ __includes [
 GRAPHICS-WINDOW
 585
 65
-1173
-674
+1169
+670
 7
 7
-38.6
+38.53333333333333
 1
 10
 1
@@ -84,11 +84,11 @@ NIL
 
 SWITCH
 345
-535
+610
 495
-568
-show-self-value
-show-self-value
+643
+change-colors
+change-colors
 0
 1
 -1000
@@ -117,23 +117,24 @@ Number
 
 PLOT
 1200
-90
+125
 1885
-465
+500
 self values
-tick
+ticks
 self-value
 0.0
-10.0
 0.0
-10.0
+0.0
+0.0
 true
 true
 "" ""
 PENS
-"head agents" 1.0 0 -2674135 true "" "plot mean [self-val] of turtles with [agent-type = 1]"
-"other agents" 1.0 0 -13345367 true "" "plot mean [self-val] of turtles with [agent-type = 0]"
-"mid agent" 1.0 0 -15575016 true "" "plot mean [self-val] of turtles"
+"head agents mean" 1.0 0 -2674135 true "" "if simulation-ready [plot mean [self-val] of turtles with [agent-type = 1]]"
+"other agents mean" 1.0 0 -13345367 true "" "plot mean [self-val] of turtles with [agent-type = 0]"
+"agents mean" 1.0 0 -15575016 true "" "plot mean [self-val] of turtles"
+"boundary" 1.0 1 -16777216 false "" "plot plot-y-min"
 
 INPUTBOX
 10
@@ -141,16 +142,16 @@ INPUTBOX
 125
 415
 number-of-agents
-10
+7
 1
 0
 Number
 
 INPUTBOX
 1200
-505
+540
 1715
-565
+600
 log-file-path
 log.txt
 1
@@ -159,9 +160,9 @@ String
 
 SWITCH
 1720
-520
+555
 1884
-553
+588
 print-log-header
 print-log-header
 1
@@ -169,7 +170,7 @@ print-log-header
 -1000
 
 BUTTON
-460
+440
 65
 575
 105
@@ -187,9 +188,9 @@ NIL
 
 SWITCH
 345
-260
+335
 495
-293
+368
 is-vary-eps?
 is-vary-eps?
 1
@@ -204,7 +205,7 @@ CHOOSER
 network-type?
 network-type?
 "Radial Network" "Full Network" "Ring Network" "Custom Wheel" "Random Network" "Scale-free Network"
-5
+2
 
 INPUTBOX
 10
@@ -231,13 +232,13 @@ Number
 SLIDER
 10
 555
-315
+320
 588
 random-probability
 random-probability
 0
 1
-0.09
+0.61
 0.01
 1
 NIL
@@ -370,9 +371,9 @@ Convergence plot
 
 TEXTBOX
 1200
-480
+515
 1350
-498
+533
 Output file
 13
 0.0
@@ -408,7 +409,7 @@ NIL
 BUTTON
 170
 730
-310
+320
 763
 Save topology file
 save-file user-new-file
@@ -428,7 +429,7 @@ BUTTON
 320
 323
 Clear all
-clear-all
+let temp network-size\nlet temp2 number-of-groups\nclear-all\nset network-size temp\nset number-of-groups temp2
 NIL
 1
 T
@@ -442,7 +443,7 @@ NIL
 SLIDER
 140
 635
-312
+320
 668
 gamma
 gamma
@@ -488,9 +489,9 @@ Number
 
 TEXTBOX
 345
-115
+120
 495
-133
+138
 Simulation options
 13
 0.0
@@ -498,9 +499,9 @@ Simulation options
 
 TEXTBOX
 345
-240
+315
 435
-258
+333
 Epsilon variation
 10
 0.0
@@ -508,9 +509,9 @@ Epsilon variation
 
 TEXTBOX
 345
-375
+450
 475
-393
+468
 Number of nodes variation
 10
 0.0
@@ -518,9 +519,9 @@ Number of nodes variation
 
 TEXTBOX
 345
-515
+590
 390
-533
+608
 Display
 10
 0.0
@@ -528,9 +529,9 @@ Display
 
 INPUTBOX
 345
-300
+375
 415
-360
+435
 min-eps
 0.1
 1
@@ -539,9 +540,9 @@ Number
 
 INPUTBOX
 420
-300
+375
 495
-360
+435
 max-eps
 0.5
 1
@@ -550,9 +551,9 @@ Number
 
 INPUTBOX
 345
-440
+515
 415
-500
+575
 min-agents
 10
 1
@@ -561,9 +562,9 @@ Number
 
 INPUTBOX
 420
-440
+515
 495
-500
+575
 max-agents
 60
 1
@@ -572,9 +573,9 @@ Number
 
 SWITCH
 345
-395
+470
 495
-428
+503
 is-vary-agents?
 is-vary-agents?
 1
@@ -618,9 +619,9 @@ HORIZONTAL
 
 TEXTBOX
 345
-145
+220
 460
-163
+238
 Convergence precision
 10
 0.0
@@ -628,20 +629,20 @@ Convergence precision
 
 INPUTBOX
 345
-165
+240
 575
-225
+300
 convergence-precision
-0.1
+1.0E-4
 1
 0
 Number
 
 INPUTBOX
 500
-300
+375
 575
-360
+435
 step-eps
 0.1
 1
@@ -650,9 +651,9 @@ Number
 
 INPUTBOX
 500
-440
+515
 575
-500
+575
 step-agents
 25
 1
@@ -662,7 +663,7 @@ Number
 BUTTON
 345
 65
-455
+430
 105
 Validate
 validate-simulation
@@ -700,6 +701,87 @@ theta
 1
 NIL
 HORIZONTAL
+
+CHOOSER
+345
+650
+495
+695
+node-label
+node-label
+"None" "Group ID" "Node ID" "Node Value" "Closeness centrality"
+3
+
+BUTTON
+500
+655
+575
+688
+Change
+update-labels
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+102
+290
+227
+323
+Resize network
+setup-region
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+CHOOSER
+345
+165
+572
+210
+weighting
+weighting
+"Epsilon weighting" "Normalized epsilon weighting" "Degree centrality weighting"
+0
+
+TEXTBOX
+345
+145
+450
+163
+Weighting strategy
+10
+0.0
+1
+
+BUTTON
+1200
+90
+1292
+123
+Clear plot
+clear-plot\nset cumulated-ticks 0
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
 
 @#$#@#$#@
 ## WHAT IS IT?

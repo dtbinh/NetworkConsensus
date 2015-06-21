@@ -29,19 +29,18 @@
 
 to edit-group [adjacency-matrix]
   
+  ; detect if network size has changed
+  if total-groups != number-of-groups [ report-error 7 stop ]
+  
   set p 2
   
-  ; verifies total-groups and group-id
-  if (total-groups <= 0) [ report-error 5 stop ]
+  ; verifies group-id
   if (group-id <= 0) or (group-id > total-groups) [ report-error 6 stop ]
   
-  ; setup patches
-  setup-region
-
-  ifelse network-type? != "Scale-free Network"[  
-    ; adjust agents by creating turtles or killing them if necessary  
-    adjust-agents
-    
+  ; adjust agents by creating turtles or killing them if necessary 
+  adjust-agents adjacency-matrix
+  
+  ifelse (network-type? != "Scale-free Network") or (adjacency-matrix != nobody) [    
     ; adjust network by creating the right links
     adjust-network adjacency-matrix
   ]
@@ -51,13 +50,18 @@ to edit-group [adjacency-matrix]
         [setup-scale-free-network]
   ]
   
+  ; adjust agents identifier
+  adjust-agents-identifier
+  
   ; adjust the agent values according to their type
   adjust-agent-type-properties
-      
-  ask turtles [ set label who set size 1.5 ]
   
+  ; update labels
+  update-labels
+      
   ; block simulations making re-validation necessary
   clear-ticks
+  set simulation-ready false
   
 end
 
@@ -66,51 +70,56 @@ end
 ; if it is provided.
 
 to adjust-network [adjacency-matrix]
+  
   ; Select nodes belonging to the given group
   let group-nodes turtles with [my-group = group-id]
   
-  ; Clear all existing links and reset nodes' type
-  ask group-nodes [
-    ask my-in-influence-links [die]
-    ask my-out-influence-links [die] 
-    set agent-type 0
-  ]
-  
-  ; Position nodes in a cirle
-  layout-circle (sort group-nodes) 5
-  
-  ; Set group's central agent
-  let centralAgent setup-central-agent-from-list group-nodes
-  
-  ; Create links from adjacency matrix if it is provided,
-  ; or according to the network-type if not.
-  ifelse adjacency-matrix != nobody [
-    setup-custom-matrix-network group-nodes adjacency-matrix
-  ]
-  [
-    ; setup network
-    ifelse network-type? = "Radial Network" [
-      setup-radial-network group-nodes
-    ][
-    ifelse network-type? = "Full Network" [
-      setup-full-network group-nodes
-    ][
-    ifelse network-type? = "Ring Network" [
-      setup-ring-network group-nodes
-    ][
-    ifelse network-type? = "Custom Wheel" [
-      ifelse (total-spokes >= number-of-agents)
+  ; Checks if the group is not empty
+  if count group-nodes > 0 [
+    
+    ; Clear all existing links and reset nodes' type
+    ask group-nodes [
+      ask my-in-influence-links [die]
+      ask my-out-influence-links [die] 
+    ]
+    
+    ; Position nodes in a cirle
+    layout-circle (but-first sort group-nodes) 5
+    
+    ; Set group's central agent
+    let centralAgent setup-central-agent-from-list group-nodes
+    
+    ; Create links from adjacency matrix if it is provided,
+    ; or according to the network-type if not.
+    ifelse adjacency-matrix != nobody [
+      setup-custom-matrix-network group-nodes adjacency-matrix
+    ]
+    [
+      ; setup network
+      ifelse network-type? = "Radial Network" [
+        setup-radial-network group-nodes
+      ][
+      ifelse network-type? = "Full Network" [
+        setup-full-network group-nodes
+      ][
+      ifelse network-type? = "Ring Network" [
+        setup-ring-network group-nodes
+      ][
+      ifelse network-type? = "Custom Wheel" [
+        ifelse (total-spokes >= number-of-agents)
         [report-error 4]
         [setup-custom-wheel-network group-nodes]
-    ][
-    if network-type? = "Random Network" [
-      setup-random-network group-nodes
+      ][
+      if network-type? = "Random Network" [
+        setup-random-network group-nodes
+      ]
+      ]]]]
     ]
-    ]]]]
+    
+    ; Moves the group
+    move-to-agent group-nodes centralAgent
+    
   ]
-  
-  ; Moves the group
-  move-to-agent group-nodes centralAgent
   
 end
 
@@ -121,22 +130,29 @@ end
 ; Sets the default shape of turtles and creates new or kills unnecessary
 ; turtles depending on the group-id and the given number of agents.
 
-to adjust-agents
+to adjust-agents [adjacency-matrix]
   
   ; set the default shape as "circle"
   set-default-shape turtles "circle" 
   
-  
-  ; get number of turtles with the given group-id
-  let number-of-turtles-in-group count turtles with [my-group = group-id]
-  
-  ; create/kill turtles if the number of turtles with the given group-id is different
-  ; from the given number of agents
-  ifelse (number-of-turtles-in-group < number-of-agents) [
-    create-turtles (number-of-agents - number-of-turtles-in-group) [ set my-group group-id ]
+  ifelse network-type? = "Scale-free Network" and adjacency-matrix = nobody [
+    ask turtles with [ my-group = group-id ] [ die ]
   ]
   [
-    ask max-n-of (number-of-turtles-in-group - number-of-agents) turtles with [ my-group = group-id ] [ who ] [ die ]
+    ; get number of turtles with the given group-id
+    let number-of-turtles-in-group count turtles with [my-group = group-id]
+    if adjacency-matrix != nobody [set number-of-agents length adjacency-matrix]
+    
+    ; create/kill turtles if the number of turtles with the given group-id is different
+    ; from the given number of agents
+    ifelse (number-of-turtles-in-group < number-of-agents) [
+      create-turtles (number-of-agents - number-of-turtles-in-group) [ set my-group group-id ]
+    ]
+    [
+      ask max-n-of (number-of-turtles-in-group - number-of-agents) turtles with [ my-group = group-id ] [ who ] [ die ]
+    ]
+    
+    if adjacency-matrix = nobody [ask first sort turtles with [my-group = group-id] [set agent-type 1]]
   ]
   
 end
@@ -144,22 +160,54 @@ end
 ; Sets nodes properties depending on their type.
 
 to adjust-agent-type-properties
-  ask turtles with [ agent-type = 0 ] [ set color blue set self-val other's-value ]
-  ask turtles with [ agent-type = 1 ] [ set color red set self-val head's-value ]
+  ask turtles with [ agent-type = 0 ] [ set color blue set self-val other's-value set size 1.5 ]
+  ask turtles with [ agent-type = 1 ] [ set color red set self-val head's-value set size 1.5 ]
+end
+
+to adjust-agents-identifier
+  let id 0
+  let id-group 1
+  repeat total-groups [
+    let node-list sort turtles with [my-group = id-group]
+    foreach node-list [
+      ask ? [ set identifier id set label id ]
+      set id id + 1  
+    ]
+    set id-group id-group + 1  
+  ]
 end
 
 to convert-into-head [nodes]
-  foreach nodes [
-    ask turtle ? [ set agent-type 1 ]
+  ifelse is-list? nodes [
+    foreach nodes [
+      ask turtle-with-id ? [ set agent-type 1 ]
+    ]
+  ]
+  [
+    if is-number? nodes [
+       ask turtle-with-id nodes [ set agent-type 1 ]
+    ] 
   ]
   adjust-agent-type-properties
 end
 
 to convert-into-others [nodes]
-  foreach nodes [
-    ask turtle ? [ set agent-type 0 ]
+  ifelse is-list? nodes [
+    foreach nodes [
+      ask turtle-with-id ? [ set agent-type 0 ]
+    ]
+  ]
+  [
+    if is-number? nodes [
+       ask turtle-with-id nodes [ set agent-type 0 ]
+    ] 
   ]
   adjust-agent-type-properties
+end
+
+to delete-node [node-identifier]
+  ask turtle-with-id node-identifier [die]
+  adjust-agents-identifier
 end
 
 ;----------------------------------------------------------------------------;
@@ -169,55 +217,57 @@ end
 ; Add a single edge from a node to another
 
 to add-edge [t_from t_to]
-  ask turtle t_from [ 
-    create-influence-link-to turtle t_to [
-      if ([my-group] of turtle t_from != [my-group] of turtle t_to) [ set inter-group true ] 
+  carefully [
+    ask turtle-with-id t_from [ 
+      create-influence-link-to turtle-with-id t_to [
+        if ([my-group] of turtle-with-id t_from != [my-group] of turtle-with-id t_to) [ set inter-group true ] 
+      ]
+    ]
+    ask turtle-with-id t_to [ 
+      create-influence-link-to turtle-with-id t_from [
+        if ([my-group] of turtle-with-id t_from != [my-group] of turtle-with-id t_to) [ set inter-group true ] 
+      ]
     ]
   ]
-  ask turtle t_to [ 
-    create-influence-link-to turtle t_from [
-      if ([my-group] of turtle t_from != [my-group] of turtle t_to) [ set inter-group true ] 
-    ]
+  [ 
+    report-error 9 
   ]
-  setup-influence-links-weight
 end 
 
 ; Add multiples edges from list of nodes to another list of nodes
 
 to add-edges [T_from T_to]
-  (foreach T_from T_to
-    [ add-edge ?1 ?2 ])
-  setup-influence-links-weight
+  (foreach T_from T_to [ add-edge ?1 ?2 ])
 end
 
 ; Add edges from one to multiple
 
 to add-edges-from [t_from T_to]
   foreach T_to [add-edge t_from ?]
-  setup-influence-links-weight
 end 
 
 ; Delete a single edge
 
 to delete-edge [t_from t_to]
-  ask turtle t_from [ ask out-influence-link-to turtle t_to [die]]
-  ask turtle t_to [ ask out-influence-link-to turtle t_from [die]]
-  setup-influence-links-weight
+  carefully [
+    ask turtle-with-id t_from [ ask out-influence-link-to turtle-with-id t_to [die]]
+    ask turtle-with-id t_to [ ask out-influence-link-to turtle-with-id t_from [die]]
+  ]
+  [
+    report-error 9
+  ]
 end 
 
 ; Delete multiples edges from list of nodes to another list of nodes
 
 to delete-edges [T_from T_to]
-  (foreach T_from T_to
-    [ delete-edge ?1 ?2 ])
-  setup-influence-links-weight
+  (foreach T_from T_to [ delete-edge ?1 ?2 ])
 end
 
 ; Delete edges from one to multiple
 
 to delete-edges-from [t_from T_to]
   foreach T_to [delete-edge t_from ?]
-  setup-influence-links-weight
 end
 
 ;----------------------------------------------------------------------------;
@@ -228,12 +278,62 @@ end
 
 to setup-region
   
-  let world-size (ceiling sqrt total-groups) * 7
-  let window-length world-width * patch-size
-  resize-world (0 - world-size) world-size (0 - world-size) world-size
-  set-patch-size window-length / world-width
-  ask patches [set belongs-to nobody]
-
+  let new-network-size (ceiling sqrt total-groups) ^ 2
+  
+  if total-groups != number-of-groups [
+      
+    set number-of-groups total-groups
+    
+    if (new-network-size != network-size or total-groups < number-of-groups) [
+      
+      if (total-groups <= 0) [ report-error 5 stop ]
+      
+      set network-size new-network-size
+      
+      let temp-adjacency adjacency-matrices
+      let temp-inter-group-links inter-group-links
+      let temp-head-agents head-agents
+      
+      set group-id 1
+      
+      let world-size (ceiling sqrt total-groups) * 7
+      let window-length world-width * patch-size
+      
+      resize-world (0 - world-size) world-size (0 - world-size) world-size
+      set-patch-size window-length / world-width
+      
+      while [(group-id <= network-size) and (group-id <= length temp-adjacency)] [
+        let adjacency-matrix item (group-id - 1) temp-adjacency
+        if adjacency-matrix != nobody [ edit-group adjacency-matrix ] 
+        set group-id group-id + 1
+      ]
+      
+      if any? turtles [
+        let max-identifier [identifier] of max-one-of turtles [identifier]
+        
+        foreach temp-inter-group-links [
+          if (item 0 ?) <= max-identifier and (item 1 ?) <= max-identifier [
+            add-edge item 0 ? item 1 ?
+          ]
+        ]
+        
+        foreach temp-head-agents [
+          if ? <= max-identifier [
+            ask turtle-with-id ? [set agent-type 1]
+          ]
+        ]
+        
+        adjust-agent-type-properties
+      ]
+      
+      set group-id 1
+      
+    ]
+    
+  ]
+  
+  
+  
 end
 
 
