@@ -71,7 +71,7 @@ BUTTON
 320
 283
 Edit group
-edit-group nobody
+edit-group nobody false
 NIL
 1
 T
@@ -142,7 +142,7 @@ INPUTBOX
 125
 415
 number-of-agents
-15
+10
 1
 0
 Number
@@ -165,7 +165,7 @@ SWITCH
 588
 print-log-header
 print-log-header
-1
+0
 1
 -1000
 
@@ -205,7 +205,7 @@ CHOOSER
 network-type?
 network-type?
 "Radial Network" "Full Network" "Ring Network" "Custom Wheel" "Random Network" "Scale-free Network"
-2
+4
 
 INPUTBOX
 10
@@ -238,7 +238,7 @@ random-probability
 random-probability
 0
 1
-0.6
+0.5
 0.01
 1
 NIL
@@ -313,7 +313,7 @@ epsilon
 epsilon
 0
 1
-0.25
+0.3
 0.01
 1
 NIL
@@ -461,7 +461,7 @@ INPUTBOX
 125
 685
 num-edges
-3
+2
 1
 0
 Number
@@ -555,7 +555,7 @@ INPUTBOX
 415
 575
 min-agents
-20
+10
 1
 0
 Number
@@ -566,7 +566,7 @@ INPUTBOX
 495
 575
 max-agents
-80
+100
 1
 0
 Number
@@ -655,7 +655,7 @@ INPUTBOX
 575
 575
 step-agents
-20
+10
 1
 0
 Number
@@ -710,7 +710,7 @@ CHOOSER
 node-label
 node-label
 "None" "Group ID" "Node ID" "Node Value" "Closeness centrality"
-3
+4
 
 BUTTON
 500

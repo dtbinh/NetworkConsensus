@@ -27,7 +27,7 @@
 ; Adjust the network according to the network-type? field if no adjacency-matrix
 ; is provided.
 
-to edit-group [adjacency-matrix]
+to edit-group [adjacency-matrix allow-overwrite]
   
   ; if number-of-groups is not defined, resize network
   if number-of-groups = 0 [ setup-region ]
@@ -35,7 +35,16 @@ to edit-group [adjacency-matrix]
   ; detect if network size has changed
   if total-groups != number-of-groups [ report-error 7 stop ]
   
+  ; warns user about topology overwriting
+  if not allow-overwrite and count turtles with [my-group = group-id] > 0 [
+    if not user-yes-or-no? "ATTENTION: This action will overwrite the existing group with the given id. Would you like to proceed?" [ stop ]
+  ]
+  
+  ; set results precision 
   set p 2
+  
+  ; setup network extension
+  nw:set-context turtles influence-links
   
   ; verifies group-id
   if (group-id <= 0) or (group-id > total-groups) [ report-error 6 stop ]
@@ -307,7 +316,7 @@ to setup-region
       
       while [(group-id <= network-size) and (group-id <= length temp-adjacency)] [
         let adjacency-matrix item (group-id - 1) temp-adjacency
-        if adjacency-matrix != nobody [ edit-group adjacency-matrix ] 
+        if adjacency-matrix != nobody [ edit-group adjacency-matrix true ] 
         set group-id group-id + 1
       ]
       

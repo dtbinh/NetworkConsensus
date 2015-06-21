@@ -21,9 +21,8 @@ to-report simulate-varying-agents
       set agt (agt + step-agents)
       if agt > max-agents [ report true ]
       set number-of-agents agt
-      edit-group nobody
+      edit-group nobody true
       reset-simulation
-      ;reset-ticks
   ]
   report false
 
@@ -35,9 +34,6 @@ to-report simulate-varying-epsilon
     if eps > max-eps [ report true ]
     set epsilon eps
     reset-simulation
-    ;setup-influence-links-weight
-    ;adjust-agent-type-properties
-    ;reset-ticks
   ]
   report false
   
@@ -198,7 +194,7 @@ to-report validate-simulation-options
   if (is-vary-agents? and number-of-groups = 1) [
     set agt min-agents
     set number-of-agents agt
-    edit-group nobody
+    edit-group nobody false
   ]
   
   if (is-vary-eps?) [
