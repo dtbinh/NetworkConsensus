@@ -22,8 +22,8 @@ to-report simulate-varying-agents
       if agt > max-agents [ report true ]
       set number-of-agents agt
       edit-group nobody
-      reset-ticks
-      set simulation-ready true
+      reset-simulation
+      ;reset-ticks
   ]
   report false
 
@@ -34,10 +34,10 @@ to-report simulate-varying-epsilon
     set eps precision (eps + step-eps) ((-1) * floor(log step-eps 10))
     if eps > max-eps [ report true ]
     set epsilon eps
-    setup-influence-links-weight
-    adjust-agent-type-properties
-    reset-ticks
-    set simulation-ready true
+    reset-simulation
+    ;setup-influence-links-weight
+    ;adjust-agent-type-properties
+    ;reset-ticks
   ]
   report false
   
@@ -65,6 +65,7 @@ to-report simulate
     update-labels
    
     tick
+    set number-of-ticks number-of-ticks + 1
     
     report false
     
@@ -78,17 +79,22 @@ to-report simulate
 end
 
 to validate-simulation
+  
   set printed-head false
+  
   ; validate network and simulation options to avoid inconsistencies   
-  if (validate-network and validate-simulation-options) [
-    if not simulation-ready [
-      adjust-agent-type-properties
-      update-labels
-      set simulation-ready true
-      set cumulated-ticks cumulated-ticks + ticks
-      reset-ticks
-    ]
-  ]
+  if (validate-network and validate-simulation-options) [ reset-simulation ]
+  
+end
+
+to reset-simulation
+  setup-influence-links-weight
+  adjust-agent-type-properties
+  update-labels
+  adjust-plot-pens-interval 0.0001
+  reset-ticks
+  adjust-plot-pens-interval 1
+  draw-boundary-line
 end
 
 to-report validate-network
@@ -109,7 +115,7 @@ to-report check-weights
     let in-weight-sum get-in-neighbour-weights
     set in-weight-sum (in-weight-sum + self-weight)
     ;type "check-weights: agent " type [who] of self type ": " type in-weight-sum print ""  
-    if precision in-weight-sum 15 != 1 [
+    if precision in-weight-sum 10 != 1 [
       type "Warning --> check-weights: agent " type [who] of self type ": " type in-weight-sum type ". should be 1." print "" 
       report-error 2
       set error-occurred true
@@ -123,11 +129,16 @@ end
 
 to go
   
-  ifelse (is-vary-agents?) [ if simulate-varying-agents [ set simulation-ready false stop ] ]
+  if not running-simulation [
+    reset-simulation
+    set running-simulation true
+  ]
+  
+  ifelse (is-vary-agents? and number-of-groups = 1) [ if simulate-varying-agents [ set running-simulation false stop ] ]
   [
-    ifelse (is-vary-eps?) [ if simulate-varying-epsilon [ set simulation-ready false stop ] ] 
+    ifelse (is-vary-eps?) [ if simulate-varying-epsilon [ set running-simulation false stop ] ] 
     [ 
-      if simulate [ set simulation-ready false stop ]
+      if simulate [ set running-simulation false stop ]
     ]
   ]
  
@@ -184,7 +195,7 @@ end
 
 to-report validate-simulation-options
   
-  if (is-vary-agents?) [
+  if (is-vary-agents? and number-of-groups = 1) [
     set agt min-agents
     set number-of-agents agt
     edit-group nobody
@@ -333,8 +344,20 @@ end
 ;    Plotting                                                                ;
 ;----------------------------------------------------------------------------;
 
-to draw-simulation-boundary
-  set-current-plot-pen "boundary"
-  plot plot-y-max
+to adjust-plot-pens-interval [interval]
+  
+  set-current-plot-pen "head agents mean"
+  set-plot-pen-interval interval
+  set-current-plot-pen "other agents mean"
+  set-plot-pen-interval interval
+  set-current-plot-pen "agents mean"
+  set-plot-pen-interval interval
+  
 end
 
+to draw-boundary-line
+  set-current-plot-pen "boundary"
+  plotxy number-of-ticks plot-y-min
+  plotxy number-of-ticks plot-y-max
+  plotxy number-of-ticks plot-y-min
+end

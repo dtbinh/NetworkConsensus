@@ -112,13 +112,13 @@ globals [
   
   ; Network size (max number of groups)
   network-size
+   
+  ; Ticks count
+  number-of-ticks
   
-  ; Simulation ready to start
-  simulation-ready
-  
-  ; Cumulated ticks (for plotting)
-  cumulated-ticks
-  
+  ; Boolean indicating if a simulation is running or not
+  running-simulation
+    
 ] 
 
 ;----------------------------------------------------------------------------;

@@ -29,6 +29,9 @@
 
 to edit-group [adjacency-matrix]
   
+  ; if number-of-groups is not defined, resize network
+  if number-of-groups = 0 [ setup-region ]
+  
   ; detect if network size has changed
   if total-groups != number-of-groups [ report-error 7 stop ]
   
@@ -61,7 +64,7 @@ to edit-group [adjacency-matrix]
       
   ; block simulations making re-validation necessary
   clear-ticks
-  set simulation-ready false
+  set running-simulation false
   
 end
 

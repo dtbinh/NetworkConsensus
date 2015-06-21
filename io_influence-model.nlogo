@@ -41,8 +41,8 @@ __includes [
 GRAPHICS-WINDOW
 585
 65
-1169
-670
+1172
+673
 7
 7
 38.53333333333333
@@ -131,10 +131,10 @@ true
 true
 "" ""
 PENS
-"head agents mean" 1.0 0 -2674135 true "" "if simulation-ready [plot mean [self-val] of turtles with [agent-type = 1]]"
+"head agents mean" 1.0 0 -2674135 true "" "plot mean [self-val] of turtles with [agent-type = 1]"
 "other agents mean" 1.0 0 -13345367 true "" "plot mean [self-val] of turtles with [agent-type = 0]"
 "agents mean" 1.0 0 -15575016 true "" "plot mean [self-val] of turtles"
-"boundary" 1.0 1 -16777216 false "" "plot plot-y-min"
+"boundary" 1.0 0 -16777216 false "" "plot plot-y-min"
 
 INPUTBOX
 10
@@ -142,7 +142,7 @@ INPUTBOX
 125
 415
 number-of-agents
-7
+15
 1
 0
 Number
@@ -238,7 +238,7 @@ random-probability
 random-probability
 0
 1
-0.61
+0.6
 0.01
 1
 NIL
@@ -313,7 +313,7 @@ epsilon
 epsilon
 0
 1
-0.5
+0.25
 0.01
 1
 NIL
@@ -429,7 +429,7 @@ BUTTON
 320
 323
 Clear all
-let temp network-size\nlet temp2 number-of-groups\nclear-all\nset network-size temp\nset number-of-groups temp2
+clear-turtles\nclear-ticks\nclear-patches\nclear-drawing\n\n
 NIL
 1
 T
@@ -544,7 +544,7 @@ INPUTBOX
 495
 435
 max-eps
-0.5
+0.9
 1
 0
 Number
@@ -555,7 +555,7 @@ INPUTBOX
 415
 575
 min-agents
-10
+20
 1
 0
 Number
@@ -566,7 +566,7 @@ INPUTBOX
 495
 575
 max-agents
-60
+80
 1
 0
 Number
@@ -655,7 +655,7 @@ INPUTBOX
 575
 575
 step-agents
-25
+20
 1
 0
 Number
@@ -772,7 +772,7 @@ BUTTON
 1292
 123
 Clear plot
-clear-plot\nset cumulated-ticks 0
+clear-plot\nset number-of-ticks 0
 NIL
 1
 T
