@@ -16,8 +16,8 @@
 ;  This module deals with the writing and reading of files                   ;
 ;----------------------------------------------------------------------------;
 
-;loads a topology from a file
-to load-file [file-name]
+;loads network from a file
+to FileIO.loadNetwork [file-name]
   
   if file-name != false [
     
@@ -31,7 +31,7 @@ to load-file [file-name]
     set total-groups file-read
     
     ; setup region
-    setup-region
+    Setup.resizeNetwork
     
     ; group iteration
     set group-id 1
@@ -48,28 +48,30 @@ to load-file [file-name]
     ; inter-group links
     let inter-group-links-list file-read
     foreach inter-group-links-list [
-      ask turtle (item 0 ?) [ create-influence-link-to turtle (item 1 ?) ]
+      ask turtle (item 0 ?) [ 
+        create-influence-link-to turtle (item 1 ?) [set inter-group true]
+      ]
     ]
     
     ; head agents
     let head-agents-list file-read
     foreach head-agents-list [
-      ask turtle-with-id ? [set agent-type 1] 
+      ask Global.turtleWithId ? [set agent-type 1] 
     ]
     
     file-close
     
     ; adjust the agent values according to their type
-    adjust-agent-type-properties
+    Setup.adjustAgentTypeProperties
     
-    setup-influence-links-weight
+    Simulation.calculateWeights 
     
   ]
     
 end
 
-; saves topology into a new file
-to save-file [file-name]
+; saves network into a new file
+to FileIO.saveNetwork [file-name]
     
   ; checks if a file-name has been provided
   if file-name != false [
@@ -89,7 +91,7 @@ to save-file [file-name]
     ; write adjacency-matrices, inter-group links and head agents
     file-print "; For each group, set adjacency matrix \n"
     let id-group 1
-    foreach adjacency-matrices [
+    foreach Global.adjacencyMatrices [
       file-print word "; Group " id-group
       file-print ?
       file-print ""
@@ -97,10 +99,10 @@ to save-file [file-name]
     ]
     
     file-print "; Set inter-group links"
-    file-print word inter-group-links "\n"
+    file-print word Global.interGroupLinks "\n"
     
     file-print "; Set head-agents"
-    file-print word head-agents "\n"
+    file-print word Global.headNodes "\n"
     
     ; close file
     file-close
@@ -110,17 +112,17 @@ to save-file [file-name]
 end
 
 ; prints the final results after convergence is reached
-to print-results
+to FileIO.printResults
   
-  let convergence-val (precision ([self-val] of one-of turtles) p)
-  let influence-report precision ((convergence-val / (head's-value - other's-value))) p
+  let convergence-val (precision ([self-val] of one-of turtles) results-precision)
+  let influence-report precision ((convergence-val / (head's-value - other's-value))) results-precision
   
-  let mean-head-influence precision ((sum [sum [weight] of my-out-influence-links] of turtles with [agent-type = 1]) / (sum [count my-out-influence-links] of turtles with [agent-type = 1])) p
-  let mean-others-influence precision ((sum [self-weight] of turtles with [agent-type = 0] + sum [sum [weight] of my-in-influence-links with [[agent-type] of end1 = 0]] of turtles with [agent-type = 0]) / (count turtles with [agent-type = 0] + sum [count my-in-influence-links with [[agent-type] of end1 = 0]] of turtles with [agent-type = 0])) p
-  let head-others-influence-ratio precision (mean-head-influence / mean-others-influence) p
-  let mean-head-in-influence precision (mean [mean [weight] of my-in-influence-links] of turtles with [agent-type = 1]) p
-  let mean-head-influence-weight-ratio precision (mean [sum [weight] of my-in-influence-links / self-weight] of turtles with [agent-type = 1]) p
-  let mean-head-weight precision (mean [self-weight] of turtles with [agent-type = 1]) p
+  let mean-head-influence precision ((sum [sum [weight] of my-out-influence-links] of turtles with [agent-type = 1]) / (sum [count my-out-influence-links] of turtles with [agent-type = 1])) results-precision
+  let mean-others-influence precision ((sum [self-weight] of turtles with [agent-type = 0] + sum [sum [weight] of my-in-influence-links with [[agent-type] of end1 = 0]] of turtles with [agent-type = 0]) / (count turtles with [agent-type = 0] + sum [count my-in-influence-links with [[agent-type] of end1 = 0]] of turtles with [agent-type = 0])) results-precision
+  let head-others-influence-ratio precision (mean-head-influence / mean-others-influence) results-precision
+  let mean-head-in-influence precision (mean [mean [weight] of my-in-influence-links] of turtles with [agent-type = 1]) results-precision
+  let mean-head-influence-weight-ratio precision (mean [sum [weight] of my-in-influence-links / self-weight] of turtles with [agent-type = 1]) results-precision
+  let mean-head-weight precision (mean [self-weight] of turtles with [agent-type = 1]) results-precision
   
   print "------------------------- END OF SIMULATION -----------------------------"
   type "convergence value: " print convergence-val

@@ -16,7 +16,7 @@
 ;  This module is responsible for keeping all the message errors.            ;
 ;----------------------------------------------------------------------------;
 
-to report-error [error-code]
+to Error.report [error-code]
   
   let message ""
   

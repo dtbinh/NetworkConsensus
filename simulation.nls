@@ -18,9 +18,13 @@
 ;  all the necessary weights.                                                ;
 ;----------------------------------------------------------------------------;
 
-to-report simulate-varying-agents
+;----------------------------------------------------------------------------;
+;  Simulation procedures                                                     ;
+;----------------------------------------------------------------------------;
+
+to-report Simulation.simulateByVaryingAgents
   
-  let simulation-result ifelse-value (is-vary-eps?) [simulate-varying-epsilon][simulate]
+  let simulation-result ifelse-value (is-vary-eps?) [Simulation.simulateByVaryingEpsilon][Simulation.simulate]
   
   if simulation-result [
       if (is-vary-eps?) [ set eps min-eps set epsilon eps ]
@@ -28,27 +32,27 @@ to-report simulate-varying-agents
       if agt > max-agents [ report true ]
       set number-of-agents agt
       Setup.editGroup nobody true
-      reset-simulation
+      Simulation.reset
   ]
   report false
 
 end
 
-to-report simulate-varying-epsilon
-  if simulate [
+to-report Simulation.simulateByVaryingEpsilon
+  if Simulation.simulate [
     set eps precision (eps + step-eps) ((-1) * floor(log step-eps 10))
     if eps > max-eps [ report true ]
     set epsilon eps
-    reset-simulation
+    Simulation.reset
   ]
   report false
   
 end
 
-to-report simulate
+to-report Simulation.simulate
     
-  setup-influence-links-weight
-  if not check-weights [ report-error 2 report true ]
+  Simulation.calculateWeights
+  if not Simulation.validateNetworkWeights [ Error.report 2 report true ]
   
   let convergence (([self-val] of max-one-of turtles [self-val]) - ([self-val] of min-one-of turtles [self-val]))
  
@@ -58,13 +62,13 @@ to-report simulate
     ;type "at ticks: " type ticks print ": " ask turtle 0 [type "self-val of a0: " show self-val] ask turtle 1 [type "self-val of a1: " show self-val]
     
     ask turtles [ 
-      update-in-vals  
+      Simulation.updateInValues  
     ]
     ask turtles[
-      update-self-val
+      Simulation.updateSelfValue
     ]
     
-    update-labels
+    Simulation.updateNodeLabels
    
     tick
     set number-of-ticks number-of-ticks + 1
@@ -73,53 +77,95 @@ to-report simulate
     
   ]
   [
-    print-results 
+    FileIO.printResults 
     ;type "end of test for epsilon: " print epsilon
     report true 
   ]
  
 end
 
-to validate-simulation
+to Simulation.run
+  
+  if not running-simulation [
+    Simulation.reset
+    set running-simulation true
+  ]
+  
+  ifelse (is-vary-agents? and number-of-groups = 1) [ if Simulation.simulateByVaryingAgents [ set running-simulation false stop ] ]
+  [
+    ifelse (is-vary-eps?) [ if Simulation.simulateByVaryingEpsilon [ set running-simulation false stop ] ] 
+    [ 
+      if Simulation.simulate [ set running-simulation false stop ]
+    ]
+  ]
+ 
+end
+
+to Simulation.reset
+  Simulation.calculateWeights 
+  Setup.adjustAgentTypeProperties
+  Simulation.updateNodeLabels
+  Simulation.adjustPlotPens 0.0001
+  reset-ticks
+  Simulation.adjustPlotPens 1
+  Simulation.drawSimulationBoundary
+end
+
+;----------------------------------------------------------------------------;
+;  Update procedures                                                         ;
+;----------------------------------------------------------------------------;
+
+;----------------------------------------------------------------------------;
+;  Validation procedures                                                     ;
+;----------------------------------------------------------------------------;
+
+to Simulation.validate
   
   set printed-head false
   
   ; validate network and simulation options to avoid inconsistencies   
-  if (validate-network and validate-simulation-options) [ reset-simulation ]
+  if (Simulation.validateNetwork and Simulation.validateOptions) [ Simulation.reset ]
   
 end
 
-to reset-simulation
-  setup-influence-links-weight
-  Setup.adjustAgentTypeProperties
-  update-labels
-  adjust-plot-pens-interval 0.0001
-  reset-ticks
-  adjust-plot-pens-interval 1
-  draw-boundary-line
-end
-
-to-report validate-network
+to-report Simulation.validateNetwork
   
   ; check if network is connected
-  if nw:mean-path-length = false [ report-error 1 report false ]
+  if nw:mean-path-length = false [ Error.report 1 report false ]
   
-  setup-influence-links-weight
-  if not check-weights [ report false ]
+  Simulation.calculateWeights 
+  if not Simulation.validateNetworkWeights [ report false ]
    
   report true
   
 end
 
-to-report check-weights
+to-report Simulation.validateOptions
+  
+  if (is-vary-agents? and number-of-groups = 1) [
+    set agt min-agents
+    set number-of-agents agt
+    Setup.editGroup nobody false
+  ]
+  
+  if (is-vary-eps?) [
+    set eps min-eps
+    set epsilon eps
+  ]
+  
+  report true
+  
+end
+
+to-report Simulation.validateNetworkWeights
   let error-occurred false
   ask turtles[
-    let in-weight-sum get-in-neighbour-weights
+    let in-weight-sum Global.getInNeighborsWeight
     set in-weight-sum (in-weight-sum + self-weight)
     ;type "check-weights: agent " type [who] of self type ": " type in-weight-sum print ""  
     if precision in-weight-sum 10 != 1 [
       type "Warning --> check-weights: agent " type [who] of self type ": " type in-weight-sum type ". should be 1." print "" 
-      report-error 2
+      Error.report 2
       set error-occurred true
       stop
     ]
@@ -129,24 +175,9 @@ to-report check-weights
   report not error-occurred
 end
 
-to go
-  
-  if not running-simulation [
-    reset-simulation
-    set running-simulation true
-  ]
-  
-  ifelse (is-vary-agents? and number-of-groups = 1) [ if simulate-varying-agents [ set running-simulation false stop ] ]
-  [
-    ifelse (is-vary-eps?) [ if simulate-varying-epsilon [ set running-simulation false stop ] ] 
-    [ 
-      if simulate [ set running-simulation false stop ]
-    ]
-  ]
- 
-end
 
-to update-in-vals 
+
+to Simulation.updateInValues
   ;set in-vals sum [self-val] of in-influence-link-neighbors ; my-in-influence-links 
   set in-vals 0
   let neighbor-impact 0 
@@ -161,7 +192,7 @@ to update-in-vals
   ;type "agent " type [who] of self type " has in-vals: " type [in-vals] of self print ""
 end
 
-to update-self-val
+to Simulation.updateSelfValue
   let old-self-val self-val
   set self-val (in-vals + (old-self-val * self-weight))
   ifelse change-colors [
@@ -176,7 +207,7 @@ to update-self-val
   ;type "agent " type [who] of self type " has self-val: " type [self-val] of self print ""
 end
 
-to update-labels
+to Simulation.updateNodeLabels
   let label-text ""
   ask turtles [
     ifelse node-label = "Node ID" [
@@ -195,22 +226,7 @@ to update-labels
   ]
 end
 
-to-report validate-simulation-options
-  
-  if (is-vary-agents? and number-of-groups = 1) [
-    set agt min-agents
-    set number-of-agents agt
-    Setup.editGroup nobody false
-  ]
-  
-  if (is-vary-eps?) [
-    set eps min-eps
-    set epsilon eps
-  ]
-  
-  report true
-  
-end
+
 
 ;----------------------------------------------------------------------------;
 ;    Weights setup                                                           ;
@@ -218,28 +234,28 @@ end
 
 ; Calculates the weight of each node and link in the network
 
-to setup-influence-links-weight 
+to Simulation.calculateWeights 
  
   ; Calculate links' weight
   ifelse weighting = "Epsilon weighting" [
-    setup-epsilon-weighting
+    Simulation.calculateEpsilonWeighting
   ][
   ifelse weighting = "Normalized epsilon weighting" [
-    setup-normalized-epsilon-weighting
+    Simulation.calculateNormalizedEpsilonWeighting
   ][
   if weighting = "Degree centrality weighting" [
-    setup-degree-centrality-weighting
+    Simulation.calculateDegreeCentralityWeighting
   ]]]
   
   ; Calculate nodes' weight
-  ask turtles [set self-weight (1 - get-in-neighbour-weights)]
+  ask turtles [set self-weight (1 - Global.getInNeighborsWeight)]
   
   ; Set stubbornness normalization
-  if theta > 0 [setup-stubbornness-normalization]
+  if theta > 0 [Simulation.calculateStubbornness]
   
 end
 
-to setup-epsilon-weighting
+to Simulation.calculateEpsilonWeighting
  
   ; Set weight proportion between head and others
   let head-weight (1 - 1 * epsilon)
@@ -273,7 +289,7 @@ to setup-epsilon-weighting
   
 end
 
-to setup-normalized-epsilon-weighting
+to Simulation.calculateNormalizedEpsilonWeighting
   
   ; Set weight proportion between head and others
   let head-weight (1 - epsilon)
@@ -300,7 +316,7 @@ to setup-normalized-epsilon-weighting
   
 end
 
-to setup-degree-centrality-weighting
+to Simulation.calculateDegreeCentralityWeighting
   
   ask turtles [
     
@@ -320,7 +336,7 @@ to setup-degree-centrality-weighting
   
 end
 
-to setup-stubbornness-normalization
+to Simulation.calculateStubbornness
   
   ask turtles [
     
@@ -336,7 +352,7 @@ to setup-stubbornness-normalization
       set weight (stubbornness * weight / norm)
     ]
      
-    set self-weight (1 - get-in-neighbour-weights)
+    set self-weight (1 - Global.getInNeighborsWeight)
       
   ]
   
@@ -346,7 +362,7 @@ end
 ;    Plotting                                                                ;
 ;----------------------------------------------------------------------------;
 
-to adjust-plot-pens-interval [interval]
+to Simulation.adjustPlotPens [interval]
   
   set-current-plot-pen "head agents mean"
   set-plot-pen-interval interval
@@ -357,7 +373,7 @@ to adjust-plot-pens-interval [interval]
   
 end
 
-to draw-boundary-line
+to Simulation.drawSimulationBoundary
   set-current-plot-pen "boundary"
   plotxy number-of-ticks plot-y-min
   plotxy number-of-ticks plot-y-max

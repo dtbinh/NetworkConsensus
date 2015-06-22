@@ -30,10 +30,10 @@
 to Setup.editGroup [adjacency-matrix allow-overwrite]
   
   ; if number-of-groups is not defined, resize network
-  if number-of-groups = 0 [ setup-region ]
+  if number-of-groups = 0 [ Setup.resizeNetwork ]
   
   ; detect if network size has changed
-  if total-groups != number-of-groups [ report-error 7 stop ]
+  if total-groups != number-of-groups [ Error.report 7 stop ]
   
   ; warns user about topology overwriting
   if not allow-overwrite and count turtles with [my-group = group-id] > 0 [
@@ -41,13 +41,13 @@ to Setup.editGroup [adjacency-matrix allow-overwrite]
   ]
   
   ; set results precision 
-  set p 2
+  set results-precision 2
   
   ; setup network extension
   nw:set-context turtles influence-links
   
   ; verifies group-id
-  if (group-id <= 0) or (group-id > total-groups) [ report-error 6 stop ]
+  if (group-id <= 0) or (group-id > total-groups) [ Error.report 6 stop ]
   
   ; adjust agents by creating turtles or killing them if necessary 
   Setup.adjustAgents adjacency-matrix
@@ -58,8 +58,8 @@ to Setup.editGroup [adjacency-matrix allow-overwrite]
   ]
   [
     ifelse (num-edges >= number-of-agents or num-edges = 0)
-        [report-error 3]
-        [setup-scale-free-network]
+        [Error.report 3]
+        [Topology.createScaleFreeNetwork]
   ]
   
   ; adjust agents identifier
@@ -69,7 +69,7 @@ to Setup.editGroup [adjacency-matrix allow-overwrite]
   Setup.adjustAgentTypeProperties
   
   ; update labels
-  update-labels
+  Simulation.updateNodeLabels
       
   ; block simulations making re-validation necessary
   clear-ticks
@@ -99,37 +99,37 @@ to Setup.adjustNetwork [adjacency-matrix]
     layout-circle (but-first sort group-nodes) 5
     
     ; Set group's central agent
-    let centralAgent setup-central-agent-from-list group-nodes
+    let centralAgent Topology.adjustCentralAgentFromNodeList group-nodes
     
     ; Create links from adjacency matrix if it is provided,
     ; or according to the network-type if not.
     ifelse adjacency-matrix != nobody [
-      setup-custom-matrix-network group-nodes adjacency-matrix
+      Topology.createCustomMatrixNetwork group-nodes adjacency-matrix
     ]
     [
       ; setup network
       ifelse network-type? = "Radial Network" [
-        setup-radial-network group-nodes
+        Topology.createRadialNetwork group-nodes
       ][
       ifelse network-type? = "Full Network" [
-        setup-full-network group-nodes
+        Topology.createFullNetwork group-nodes
       ][
       ifelse network-type? = "Ring Network" [
-        setup-ring-network group-nodes
+        Topology.createRingNetwork group-nodes
       ][
       ifelse network-type? = "Custom Wheel" [
         ifelse (total-spokes >= number-of-agents)
-        [report-error 4]
-        [setup-custom-wheel-network group-nodes]
+        [Error.report 4]
+        [Topology.createCustomWheelNetwork group-nodes]
       ][
       if network-type? = "Random Network" [
-        setup-random-network group-nodes
+        Topology.createRandomNetwork group-nodes
       ]
       ]]]]
     ]
     
     ; Moves the group
-    move-to-agent group-nodes centralAgent
+    Topology.moveToCentralAgent group-nodes centralAgent
     
   ]
   
@@ -189,106 +189,13 @@ to Setup.adjustAgentsIdentifiers
   ]
 end
 
-to convert-into-head [nodes]
-  ifelse is-list? nodes [
-    foreach nodes [
-      ask turtle-with-id ? [ set agent-type 1 ]
-    ]
-  ]
-  [
-    if is-number? nodes [
-       ask turtle-with-id nodes [ set agent-type 1 ]
-    ] 
-  ]
-  Setup.adjustAgentTypeProperties
-end
-
-to convert-into-others [nodes]
-  ifelse is-list? nodes [
-    foreach nodes [
-      ask turtle-with-id ? [ set agent-type 0 ]
-    ]
-  ]
-  [
-    if is-number? nodes [
-       ask turtle-with-id nodes [ set agent-type 0 ]
-    ] 
-  ]
-  Setup.adjustAgentTypeProperties
-end
-
-to delete-node [node-identifier]
-  ask turtle-with-id node-identifier [die]
-  Setup.adjustAgentsIdentifiers
-end
-
 ;----------------------------------------------------------------------------;
-;    Links setup                                                             ;
+;    World setup                                                             ;
 ;----------------------------------------------------------------------------;
 
-; Add a single edge from a node to another
+; Resize network to distribute different groups
 
-to add-edge [t_from t_to]
-  carefully [
-    ask turtle-with-id t_from [ 
-      create-influence-link-to turtle-with-id t_to [
-        if ([my-group] of turtle-with-id t_from != [my-group] of turtle-with-id t_to) [ set inter-group true ] 
-      ]
-    ]
-    ask turtle-with-id t_to [ 
-      create-influence-link-to turtle-with-id t_from [
-        if ([my-group] of turtle-with-id t_from != [my-group] of turtle-with-id t_to) [ set inter-group true ] 
-      ]
-    ]
-  ]
-  [ 
-    report-error 9 
-  ]
-end 
-
-; Add multiples edges from list of nodes to another list of nodes
-
-to add-edges [T_from T_to]
-  (foreach T_from T_to [ add-edge ?1 ?2 ])
-end
-
-; Add edges from one to multiple
-
-to add-edges-from [t_from T_to]
-  foreach T_to [add-edge t_from ?]
-end 
-
-; Delete a single edge
-
-to delete-edge [t_from t_to]
-  carefully [
-    ask turtle-with-id t_from [ ask out-influence-link-to turtle-with-id t_to [die]]
-    ask turtle-with-id t_to [ ask out-influence-link-to turtle-with-id t_from [die]]
-  ]
-  [
-    report-error 9
-  ]
-end 
-
-; Delete multiples edges from list of nodes to another list of nodes
-
-to delete-edges [T_from T_to]
-  (foreach T_from T_to [ delete-edge ?1 ?2 ])
-end
-
-; Delete edges from one to multiple
-
-to delete-edges-from [t_from T_to]
-  foreach T_to [delete-edge t_from ?]
-end
-
-;----------------------------------------------------------------------------;
-;    Regions setup                                                           ;
-;----------------------------------------------------------------------------;
-
-; Setup patches to distribute different groups
-
-to setup-region
+to Setup.resizeNetwork
   
   let new-network-size (ceiling sqrt total-groups) ^ 2
   
@@ -298,13 +205,13 @@ to setup-region
     
     if (new-network-size != network-size or total-groups < number-of-groups) [
       
-      if (total-groups <= 0) [ report-error 5 stop ]
+      if (total-groups <= 0) [ Error.report 5 stop ]
       
       set network-size new-network-size
       
-      let temp-adjacency adjacency-matrices
-      let temp-inter-group-links inter-group-links
-      let temp-head-agents head-agents
+      let temp-adjacency Global.adjacencyMatrices
+      let temp-inter-group-links Global.interGroupLinks
+      let temp-head-agents Global.headNodes
       
       set group-id 1
       
@@ -331,7 +238,7 @@ to setup-region
         
         foreach temp-head-agents [
           if ? <= max-identifier [
-            ask turtle-with-id ? [set agent-type 1]
+            ask Global.turtleWithId ? [set agent-type 1]
           ]
         ]
         
@@ -343,10 +250,101 @@ to setup-region
     ]
     
   ]
-  
-  
-  
+ 
 end
 
+;----------------------------------------------------------------------------;
+;    User commands                                                           ;
+;----------------------------------------------------------------------------;
 
+; Add a single edge from a node to another
 
+to add-edge [t_from t_to]
+  carefully [
+    ask Global.turtleWithId t_from [ 
+      create-influence-link-to Global.turtleWithId t_to [
+        if ([my-group] of Global.turtleWithId t_from != [my-group] of Global.turtleWithId t_to) [ set inter-group true ] 
+      ]
+    ]
+    ask Global.turtleWithId t_to [ 
+      create-influence-link-to Global.turtleWithId t_from [
+        if ([my-group] of Global.turtleWithId t_from != [my-group] of Global.turtleWithId t_to) [ set inter-group true ] 
+      ]
+    ]
+  ]
+  [ 
+    Error.report 9 
+  ]
+end 
+
+; Add multiples edges from list of nodes to another list of nodes
+
+to add-edges [T_from T_to]
+  (foreach T_from T_to [ add-edge ?1 ?2 ])
+end
+
+; Add edges from one to multiple
+
+to add-edges-from [t_from T_to]
+  foreach T_to [add-edge t_from ?]
+end 
+
+; Delete a single edge
+
+to delete-edge [t_from t_to]
+  carefully [
+    ask Global.turtleWithId t_from [ ask out-influence-link-to Global.turtleWithId t_to [die]]
+    ask Global.turtleWithId t_to [ ask out-influence-link-to Global.turtleWithId t_from [die]]
+  ]
+  [
+    Error.report 9
+  ]
+end 
+
+; Delete multiples edges from list of nodes to another list of nodes
+
+to delete-edges [T_from T_to]
+  (foreach T_from T_to [ delete-edge ?1 ?2 ])
+end
+
+; Delete edges from one to multiple
+
+to delete-edges-from [t_from T_to]
+  foreach T_to [delete-edge t_from ?]
+end
+
+; convert nodes into head nodes
+to convert-into-head [nodes]
+  ifelse is-list? nodes [
+    foreach nodes [
+      ask Global.turtleWithId ? [ set agent-type 1 ]
+    ]
+  ]
+  [
+    if is-number? nodes [
+       ask Global.turtleWithId nodes [ set agent-type 1 ]
+    ] 
+  ]
+  Setup.adjustAgentTypeProperties
+end
+
+; convert nodes into other nodes
+to convert-into-others [nodes]
+  ifelse is-list? nodes [
+    foreach nodes [
+      ask Global.turtleWithId ? [ set agent-type 0 ]
+    ]
+  ]
+  [
+    if is-number? nodes [
+       ask Global.turtleWithId nodes [ set agent-type 0 ]
+    ] 
+  ]
+  Setup.adjustAgentTypeProperties
+end
+
+; delete node
+to delete-node [node-identifier]
+  ask Global.turtleWithId node-identifier [die]
+  Setup.adjustAgentsIdentifiers
+end

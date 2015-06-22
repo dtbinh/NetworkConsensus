@@ -41,8 +41,8 @@ __includes [
 GRAPHICS-WINDOW
 585
 65
-1174
-675
+1173
+674
 7
 7
 38.6
@@ -142,7 +142,7 @@ INPUTBOX
 125
 415
 number-of-agents
-7
+5
 1
 0
 Number
@@ -175,7 +175,7 @@ BUTTON
 575
 105
 Run!
-go
+Simulation.run
 T
 1
 T
@@ -205,7 +205,7 @@ CHOOSER
 network-type?
 network-type?
 "Radial Network" "Full Network" "Ring Network" "Custom Wheel" "Random Network" "Scale-free Network"
-1
+0
 
 INPUTBOX
 10
@@ -313,7 +313,7 @@ epsilon
 epsilon
 0
 1
-0.53
+0.5
 0.01
 1
 NIL
@@ -395,7 +395,7 @@ BUTTON
 150
 763
 Load topology file
-load-file user-file
+FileIO.loadNetwork user-file
 NIL
 1
 T
@@ -412,7 +412,7 @@ BUTTON
 320
 763
 Save topology file
-save-file user-new-file
+FileIO.saveNetwork user-new-file
 NIL
 1
 T
@@ -666,7 +666,7 @@ BUTTON
 430
 105
 Validate
-validate-simulation
+Simulation.validate
 NIL
 1
 T
@@ -718,7 +718,7 @@ BUTTON
 575
 688
 Change
-update-labels
+Simulation.updateNodeLabels
 NIL
 1
 T
@@ -735,7 +735,7 @@ BUTTON
 227
 323
 Resize network
-setup-region
+Setup.resizeNetwork
 NIL
 1
 T
