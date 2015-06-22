@@ -27,7 +27,7 @@
 ; Adjust the network according to the network-type? field if no adjacency-matrix
 ; is provided.
 
-to edit-group [adjacency-matrix allow-overwrite]
+to Setup.editGroup [adjacency-matrix allow-overwrite]
   
   ; if number-of-groups is not defined, resize network
   if number-of-groups = 0 [ setup-region ]
@@ -50,11 +50,11 @@ to edit-group [adjacency-matrix allow-overwrite]
   if (group-id <= 0) or (group-id > total-groups) [ report-error 6 stop ]
   
   ; adjust agents by creating turtles or killing them if necessary 
-  adjust-agents adjacency-matrix
+  Setup.adjustAgents adjacency-matrix
   
   ifelse (network-type? != "Scale-free Network") or (adjacency-matrix != nobody) [    
     ; adjust network by creating the right links
-    adjust-network adjacency-matrix
+    Setup.adjustNetwork adjacency-matrix
   ]
   [
     ifelse (num-edges >= number-of-agents or num-edges = 0)
@@ -63,10 +63,10 @@ to edit-group [adjacency-matrix allow-overwrite]
   ]
   
   ; adjust agents identifier
-  adjust-agents-identifier
+  Setup.adjustAgentsIdentifiers
   
   ; adjust the agent values according to their type
-  adjust-agent-type-properties
+  Setup.adjustAgentTypeProperties
   
   ; update labels
   update-labels
@@ -81,7 +81,7 @@ end
 ; necessary links according to the network-type or to the adjacency matrix
 ; if it is provided.
 
-to adjust-network [adjacency-matrix]
+to Setup.adjustNetwork [adjacency-matrix]
   
   ; Select nodes belonging to the given group
   let group-nodes turtles with [my-group = group-id]
@@ -142,7 +142,7 @@ end
 ; Sets the default shape of turtles and creates new or kills unnecessary
 ; turtles depending on the group-id and the given number of agents.
 
-to adjust-agents [adjacency-matrix]
+to Setup.adjustAgents [adjacency-matrix]
   
   ; set the default shape as "circle"
   set-default-shape turtles "circle" 
@@ -171,12 +171,12 @@ end
 
 ; Sets nodes properties depending on their type.
 
-to adjust-agent-type-properties
+to Setup.adjustAgentTypeProperties
   ask turtles with [ agent-type = 0 ] [ set color blue set self-val other's-value set size 1.5 ]
   ask turtles with [ agent-type = 1 ] [ set color red set self-val head's-value set size 1.5 ]
 end
 
-to adjust-agents-identifier
+to Setup.adjustAgentsIdentifiers
   let id 0
   let id-group 1
   repeat total-groups [
@@ -200,7 +200,7 @@ to convert-into-head [nodes]
        ask turtle-with-id nodes [ set agent-type 1 ]
     ] 
   ]
-  adjust-agent-type-properties
+  Setup.adjustAgentTypeProperties
 end
 
 to convert-into-others [nodes]
@@ -214,12 +214,12 @@ to convert-into-others [nodes]
        ask turtle-with-id nodes [ set agent-type 0 ]
     ] 
   ]
-  adjust-agent-type-properties
+  Setup.adjustAgentTypeProperties
 end
 
 to delete-node [node-identifier]
   ask turtle-with-id node-identifier [die]
-  adjust-agents-identifier
+  Setup.adjustAgentsIdentifiers
 end
 
 ;----------------------------------------------------------------------------;
@@ -316,7 +316,7 @@ to setup-region
       
       while [(group-id <= network-size) and (group-id <= length temp-adjacency)] [
         let adjacency-matrix item (group-id - 1) temp-adjacency
-        if adjacency-matrix != nobody [ edit-group adjacency-matrix true ] 
+        if adjacency-matrix != nobody [ Setup.editGroup adjacency-matrix true ] 
         set group-id group-id + 1
       ]
       
@@ -335,7 +335,7 @@ to setup-region
           ]
         ]
         
-        adjust-agent-type-properties
+        Setup.adjustAgentTypeProperties
       ]
       
       set group-id 1

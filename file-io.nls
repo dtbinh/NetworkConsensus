@@ -12,6 +12,9 @@
 ;                                                                            ;
 ;----------------------------------------------------------------------------;
 
+;----------------------------------------------------------------------------;
+;  This module deals with the writing and reading of files                   ;
+;----------------------------------------------------------------------------;
 
 ;loads a topology from a file
 to load-file [file-name]
@@ -36,7 +39,7 @@ to load-file [file-name]
       let adjacency-matrix file-read
       if adjacency-matrix != nobody [
         set number-of-agents length adjacency-matrix 
-        edit-group adjacency-matrix true
+        Setup.editGroup adjacency-matrix true
       ]
       set group-id group-id + 1
     ]
@@ -134,7 +137,7 @@ to print-results
     file-open log-file-path ; open the log file for writing (file path indicated as input)
     if print-log-header[
       if not printed-head [
-        file-type "number-nodes, epsilon, theta, ticks, convergence-value, mean-head-influence, mean-others-influence, mean-head-in-influence, mean-head-weight, influence-report, head-others-influence-ration, mean-head-influence-weight-ratio"
+        file-type "number-nodes, epsilon, theta, ticks, convergence-value, mean-head-influence, mean-others-influence, mean-head-in-influence, mean-head-weight, influence-report, head-others-influence-ratio, mean-head-influence-weight-ratio"
         file-print ""
         set printed-head true
       ]

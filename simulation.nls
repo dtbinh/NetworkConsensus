@@ -12,6 +12,12 @@
 ;                                                                            ;
 ;----------------------------------------------------------------------------;
 
+;----------------------------------------------------------------------------;
+;  This module is responsible for the application of the simulation          ;
+;  model. It validates the network for simulation and calculates             ;
+;  all the necessary weights.                                                ;
+;----------------------------------------------------------------------------;
+
 to-report simulate-varying-agents
   
   let simulation-result ifelse-value (is-vary-eps?) [simulate-varying-epsilon][simulate]
@@ -21,7 +27,7 @@ to-report simulate-varying-agents
       set agt (agt + step-agents)
       if agt > max-agents [ report true ]
       set number-of-agents agt
-      edit-group nobody true
+      Setup.editGroup nobody true
       reset-simulation
   ]
   report false
@@ -85,7 +91,7 @@ end
 
 to reset-simulation
   setup-influence-links-weight
-  adjust-agent-type-properties
+  Setup.adjustAgentTypeProperties
   update-labels
   adjust-plot-pens-interval 0.0001
   reset-ticks
@@ -194,7 +200,7 @@ to-report validate-simulation-options
   if (is-vary-agents? and number-of-groups = 1) [
     set agt min-agents
     set number-of-agents agt
-    edit-group nobody false
+    Setup.editGroup nobody false
   ]
   
   if (is-vary-eps?) [

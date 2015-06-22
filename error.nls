@@ -13,14 +13,8 @@
 ;----------------------------------------------------------------------------;
 
 ;----------------------------------------------------------------------------;
-;    ERROR CODES                                                             ;
-;                                                                            ;
-;    [1] = Network graph is not connected                                    ;
-;    [2] = Incorrect influence-link weights                                  ;
-;    [3] = Number of edges must be less than number of agents in network     ;
-;    [4] = Total spokes must be less than number of agents in network        ;
+;  This module is responsible for keeping all the message errors.            ;
 ;----------------------------------------------------------------------------;
-
 
 to report-error [error-code]
   
