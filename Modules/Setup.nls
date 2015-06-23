@@ -1,0 +1,423 @@
+;----------------------------------------------------------------------------;
+;                                                                            ;
+;    NetworkConsensus - SETUP MODULE                                         ;
+;                                                                            ;
+;    Authors:                                                                ;
+;        Leonardo Mizoguti                                                   ;
+;        Man Hue Tran Diep                                                   ;
+;        Thierry Fosso Kenne                                                 ;
+;                                                                            ;
+;    Coordinator:                                                            ;
+;        Ada Diaconescu                                                      ;
+;                                                                            ;
+;----------------------------------------------------------------------------;
+
+;----------------------------------------------------------------------------;
+;  This module is responsible for retrieving the topologies' parameters      ;
+;  and call the procedures from the TOPOLOGY MODULE to setup correctly       ;
+;  the whole network.                                                        ;
+;----------------------------------------------------------------------------;
+
+;----------------------------------------------------------------------------;
+;    Topologies setup                                                        ;
+;----------------------------------------------------------------------------;
+
+; Responds to the "Edit group" button and creates/modifies a given group 
+; identified by group-id according to the topology parameters.
+; Adjust the network according to the network-type? field if no adjacency-matrix
+; is provided.
+
+to Setup.editGroup [adjacency-matrix allow-overwrite]
+  
+  ; if number-of-groups is not defined, resize network
+  if number-of-groups = 0 [ Setup.resizeNetwork ]
+  
+  ; detect if network size has changed
+  if total-groups != number-of-groups [ Error.report 7 stop ]
+  
+  ; warns user about topology overwriting
+  if not allow-overwrite and count turtles with [my-group = group-id] > 0 [
+    if not user-yes-or-no? "ATTENTION: This action will overwrite the existing group with the given id. Would you like to proceed?" [ stop ]
+  ]
+  
+  ; set results precision 
+  set results-precision 2
+  
+  ; setup network extension
+  nw:set-context turtles influence-links
+  
+  ; verifies group-id
+  if (group-id <= 0) or (group-id > total-groups) [ Error.report 6 stop ]
+  
+  ; adjust agents by creating turtles or killing them if necessary 
+  Setup.adjustAgents adjacency-matrix
+  
+  ifelse (network-type? != "Scale-free Network") or (adjacency-matrix != nobody) [    
+    ; adjust network by creating the right links
+    Setup.adjustNetwork adjacency-matrix
+  ]
+  [
+    ifelse (num-edges >= number-of-agents or num-edges = 0)
+        [Error.report 3]
+        [Topology.createScaleFreeNetwork]
+  ]
+  
+  ; adjust agents identifier
+  Setup.adjustAgentsIdentifiers
+  
+  ; adjust the agent values according to their type
+  Setup.adjustAgentTypeProperties
+  
+  ; update labels
+  Simulation.updateNodeLabels
+      
+  ; block simulations making re-validation necessary
+  clear-ticks
+  set running-simulation false
+  
+end
+
+; Move nodes to different groups, set their position and create all
+; necessary links according to the network-type or to the adjacency matrix
+; if it is provided.
+
+to Setup.adjustNetwork [adjacency-matrix]
+  
+  ; Select nodes belonging to the given group
+  let group-nodes turtles with [my-group = group-id]
+  
+  ; Checks if the group is not empty
+  if count group-nodes > 0 [
+    
+    ; Clear all existing links and reset nodes' type
+    ask group-nodes [
+      ask my-in-influence-links [die]
+      ask my-out-influence-links [die] 
+    ]
+    
+    ; Position nodes in a cirle
+    layout-circle (but-first sort group-nodes) 5
+    
+    ; Set group's central agent
+    let centralAgent Topology.adjustCentralAgentFromNodeList group-nodes
+    
+    ; Create links from adjacency matrix if it is provided,
+    ; or according to the network-type if not.
+    ifelse adjacency-matrix != nobody [
+      Topology.createCustomMatrixNetwork group-nodes adjacency-matrix
+    ]
+    [
+      ; setup network
+      ifelse network-type? = "Radial Network" [
+        Topology.createRadialNetwork group-nodes
+      ][
+      ifelse network-type? = "Full Network" [
+        Topology.createFullNetwork group-nodes
+      ][
+      ifelse network-type? = "Ring Network" [
+        Topology.createRingNetwork group-nodes
+      ][
+      ifelse network-type? = "Custom Wheel" [
+        ifelse (total-spokes >= number-of-agents)
+        [Error.report 4]
+        [Topology.createCustomWheelNetwork group-nodes]
+      ][
+      if network-type? = "Random Network" [
+        Topology.createRandomNetwork group-nodes
+      ]
+      ]]]]
+    ]
+    
+    ; Moves the group
+    Topology.moveToCentralAgent group-nodes centralAgent
+    
+  ]
+  
+end
+
+;----------------------------------------------------------------------------;
+;    Agents setup                                                            ;
+;----------------------------------------------------------------------------;
+
+; Sets the default shape of turtles and creates new or kills unnecessary
+; turtles depending on the group-id and the given number of agents.
+
+to Setup.adjustAgents [adjacency-matrix]
+  
+  ; set the default shape as "circle"
+  set-default-shape turtles "circle" 
+  
+  ifelse network-type? = "Scale-free Network" and adjacency-matrix = nobody [
+    ask turtles with [ my-group = group-id ] [ die ]
+  ]
+  [
+    ; get number of turtles with the given group-id
+    let number-of-turtles-in-group count turtles with [my-group = group-id]
+    if adjacency-matrix != nobody [set number-of-agents length adjacency-matrix]
+    
+    ; create/kill turtles if the number of turtles with the given group-id is different
+    ; from the given number of agents
+    ifelse (number-of-turtles-in-group < number-of-agents) [
+      create-turtles (number-of-agents - number-of-turtles-in-group) [ 
+        set my-group group-id
+        set agent-has-custom-initial-value false
+      ]
+    ]
+    [
+      ask max-n-of (number-of-turtles-in-group - number-of-agents) turtles with [ my-group = group-id ] [ who ] [ die ]
+    ]
+    
+    if adjacency-matrix = nobody [ask first sort turtles with [my-group = group-id] [set agent-type 1]]
+  ]
+  
+end
+
+; Sets nodes properties depending on their type.
+
+to Setup.adjustAgentTypeProperties
+  ask turtles [
+    
+    ; set color
+    ifelse agent-type = 1 [ 
+      set color red 
+      set self-val head's-value
+    ][ 
+      set color blue 
+      set self-val other's-value
+    ]
+    
+    ; set node size
+    set size 1.5
+    
+    ; set value
+    if agent-has-custom-initial-value [
+      set self-val agent-initial-value
+    ]
+    
+  ]
+end
+
+to Setup.adjustAgentsIdentifiers
+  let id 0
+  let id-group 1
+  repeat total-groups [
+    let node-list sort turtles with [my-group = id-group]
+    foreach node-list [
+      ask ? [ set identifier id set label id ]
+      set id id + 1  
+    ]
+    set id-group id-group + 1  
+  ]
+end
+
+;----------------------------------------------------------------------------;
+;    World setup                                                             ;
+;----------------------------------------------------------------------------;
+
+; Resize network to distribute different groups
+
+to Setup.resizeNetwork
+  
+  let new-network-size (ceiling sqrt total-groups) ^ 2
+  
+  if total-groups != number-of-groups [
+    
+    if (total-groups <= 0) [ Error.report 5 stop ]
+    
+    let network-size-decreases (total-groups < number-of-groups)
+    
+    if (network-size-decreases) and (count turtles with [my-group > total-groups] > 0) [
+        if not user-yes-or-no? "ATTENTION: This action will erase all the topologies that have a group id bigger than the given number of groups. Would you like to continue?"
+        [ stop ]
+    ]
+    
+    set number-of-groups total-groups
+   
+    if (new-network-size != network-size) or (network-size-decreases) [
+      
+      set network-size new-network-size
+      
+      let temp-adjacency Global.adjacencyMatrices
+      let temp-inter-group-links Global.interGroupLinks
+      let temp-head-agents Global.headNodes
+      let temp-custom-initial-values Global.customInitialNodeValues
+      
+      set group-id 1
+      
+      let world-size (ceiling sqrt total-groups) * 7
+      let window-length world-width * patch-size
+      
+      resize-world (0 - world-size) world-size (0 - world-size) world-size
+      clear-turtles
+      set-patch-size window-length / world-width
+      
+      while [(group-id <= network-size) and (group-id <= length temp-adjacency)] [
+        let adjacency-matrix item (group-id - 1) temp-adjacency
+        if adjacency-matrix != nobody [ Setup.editGroup adjacency-matrix true ] 
+        set group-id group-id + 1
+      ]
+      
+      if any? turtles [
+        let max-identifier [identifier] of max-one-of turtles [identifier]
+        
+        foreach temp-inter-group-links [
+          if (item 0 ?) <= max-identifier and (item 1 ?) <= max-identifier [
+            add-edge item 0 ? item 1 ?
+          ]
+        ]
+        
+        foreach temp-head-agents [
+          if ? <= max-identifier [
+            ask Global.turtleWithId ? [set agent-type 1]
+          ]
+        ]
+        
+        foreach temp-custom-initial-values [
+          if (item 0 ?) <= max-identifier [
+            ask Global.turtleWithId (item 0 ?) [
+              set agent-has-custom-initial-value true
+              set agent-initial-value item 1 ?
+            ]
+          ]
+        ]
+        
+        Setup.adjustAgentTypeProperties
+      ]
+      
+      set group-id 1
+      
+    ]
+    
+    Simulation.updateNodeLabels
+    
+  ]
+ 
+end
+
+;----------------------------------------------------------------------------;
+;    User commands                                                           ;
+;----------------------------------------------------------------------------;
+
+; Add a single edge from a node to another
+
+to add-edge [t_from t_to]
+  carefully [
+    ask Global.turtleWithId t_from [ 
+      create-influence-link-to Global.turtleWithId t_to [
+        if ([my-group] of Global.turtleWithId t_from != [my-group] of Global.turtleWithId t_to) [ set inter-group true ] 
+      ]
+    ]
+    ask Global.turtleWithId t_to [ 
+      create-influence-link-to Global.turtleWithId t_from [
+        if ([my-group] of Global.turtleWithId t_from != [my-group] of Global.turtleWithId t_to) [ set inter-group true ] 
+      ]
+    ]
+  ]
+  [ 
+    Error.report 9 
+  ]
+end 
+
+; Add multiples edges from list of nodes to another list of nodes
+
+to add-edges [T_from T_to]
+  (foreach T_from T_to [ add-edge ?1 ?2 ])
+end
+
+; Add edges from one to multiple
+
+to add-edges-from [t_from T_to]
+  foreach T_to [add-edge t_from ?]
+end 
+
+; Delete a single edge
+
+to delete-edge [t_from t_to]
+  carefully [
+    ask Global.turtleWithId t_from [ ask out-influence-link-to Global.turtleWithId t_to [die]]
+    ask Global.turtleWithId t_to [ ask out-influence-link-to Global.turtleWithId t_from [die]]
+  ]
+  [
+    Error.report 9
+  ]
+end 
+
+; Delete multiples edges from list of nodes to another list of nodes
+
+to delete-edges [T_from T_to]
+  (foreach T_from T_to [ delete-edge ?1 ?2 ])
+end
+
+; Delete edges from one to multiple
+
+to delete-edges-from [t_from T_to]
+  foreach T_to [delete-edge t_from ?]
+end
+
+; convert nodes into head nodes
+to convert-into-head [nodes]
+  ifelse is-list? nodes [
+    foreach nodes [
+      ask Global.turtleWithId ? [ set agent-type 1 ]
+    ]
+  ]
+  [
+    if is-number? nodes [
+       ask Global.turtleWithId nodes [ set agent-type 1 ]
+    ] 
+  ]
+  Setup.adjustAgentTypeProperties
+end
+
+; convert nodes into other nodes
+to convert-into-others [nodes]
+  ifelse is-list? nodes [
+    foreach nodes [
+      ask Global.turtleWithId ? [ set agent-type 0 ]
+    ]
+  ]
+  [
+    if is-number? nodes [
+       ask Global.turtleWithId nodes [ set agent-type 0 ]
+    ] 
+  ]
+  Setup.adjustAgentTypeProperties
+end
+
+; delete node
+to delete-node [nodes]
+  ifelse is-list? nodes [
+    foreach nodes [
+      ask Global.turtleWithId ? [die]
+    ]
+  ]
+  [
+    if is-number? nodes [
+      ask Global.turtleWithId nodes [die]
+    ]
+  ]
+  Setup.adjustAgentsIdentifiers
+end
+
+; set node-value
+to set-node-initial-value [nodes value]
+  ifelse is-list? nodes [
+    foreach nodes [
+      ask Global.turtleWithId ? [
+        set agent-has-custom-initial-value true
+        set agent-initial-value value 
+        set self-val value
+      ]
+    ]
+  ]
+  [
+    if is-number? nodes [
+      ask Global.turtleWithId nodes [
+        set agent-has-custom-initial-value true
+        set agent-initial-value value 
+        set self-val value
+      ]
+    ]
+  ]
+  Simulation.updateNodeLabels
+end

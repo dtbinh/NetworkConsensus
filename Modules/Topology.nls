@@ -13,20 +13,25 @@
 ;----------------------------------------------------------------------------;
 
 ;----------------------------------------------------------------------------;
+;  This module is responsible for creating the different base                ;
+;  topologies.                                                               ;
+;----------------------------------------------------------------------------;
+
+;----------------------------------------------------------------------------;
 ;    Group setup                                                             ;
 ;----------------------------------------------------------------------------;
 
-to setup-radial-network [setOfAgents]
+to Topology.createRadialNetwork [node-set]
  
   ; create links in both directions between central turtle and all other turtles
-  ask first sort setOfAgents [ 
-    create-influence-links-to other setOfAgents
-    create-influence-links-from other setOfAgents 
+  ask first sort node-set [ 
+    create-influence-links-to other node-set
+    create-influence-links-from other node-set 
   ]
 
 end
 
-to setup-full-network [setOfAgents] 
+to Topology.createFullNetwork [setOfAgents] 
   
   ; create links in both directions between all pairs of turtles
   ask setOfAgents [ 
@@ -36,7 +41,7 @@ to setup-full-network [setOfAgents]
   
 end
 
-to setup-random-network [setOfAgents]
+to Topology.createRandomNetwork [setOfAgents]
   
   ;; Create a random network with a probability p of creating edges
   ask setOfAgents [
@@ -53,10 +58,10 @@ to setup-random-network [setOfAgents]
  
 end
 
-to setup-ring-network [ringSet] 
+to Topology.createRingNetwork [ringSet] 
    
   ; create links in both directions between all neighbours of turtles => ring; except turtle 0 (the control agent)
-  setup-ring-no-spokes ringSet 2
+  Topology.createRingWithoutSpokesNetwork ringSet 2
   
   ask first sort ringSet [
     create-influence-links-to other ringSet
@@ -65,10 +70,10 @@ to setup-ring-network [ringSet]
   
 end
 
-to setup-custom-wheel-network [spokesSet]  
+to Topology.createCustomWheelNetwork [spokesSet]  
   
   ;; create links in both directions between all neighbours of turtles => ring; except turtle 0 (the control agent)
-  setup-ring-no-spokes spokesSet number-of-neighbors
+  Topology.createRingWithoutSpokesNetwork spokesSet number-of-neighbors
   
   ; set links
   let other-who 0
@@ -86,7 +91,7 @@ to setup-custom-wheel-network [spokesSet]
   ] 
 end
 
-to setup-ring-no-spokes [setOfAgents nbNeighbors]
+to Topology.createRingWithoutSpokesNetwork [setOfAgents nbNeighbors]
   let agent-list sort setOfAgents with [agent-type != 1] 
   let node-index 0
   let neighbor-pair 1
@@ -107,16 +112,17 @@ to setup-ring-no-spokes [setOfAgents nbNeighbors]
   ]  
 end
 
-to setup-custom-matrix-network [setOfAgents adjacency-matrix]
+to Topology.createCustomMatrixNetwork [setOfAgents adjacency-matrix]
   
   let row 0
   let column 0
+  let number-of-agents-in-group length adjacency-matrix
   let list-agents sort setOfAgents
   
-  while [row < number-of-agents] 
+  while [row < number-of-agents-in-group] 
   [
     set column row + 1
-    while [column < number-of-agents]
+    while [column < number-of-agents-in-group]
     [
       if ((item column (item row adjacency-matrix)) = 1)
       [
@@ -136,45 +142,45 @@ end
 ;    Scale Free Network                                                      ;
 ;----------------------------------------------------------------------------;
 
-to setup-scale-free-network
+to Topology.createScaleFreeNetwork
   set degrees []   ;; initialize the array to be empty
   ;; make the initial network of two nodes and an edge
   set-default-shape turtles "circle"
   ;; make the initial network of two nodes and an edge
-  make-node ;; first node
+  Topology.makeNode ;; first node
   let first-node new-node
   let prev-node new-node
   repeat num-edges [
-    make-node ;; second node
-    make-edge new-node prev-node ;; make the edge
+    Topology.makeNode ;; second node
+    Topology.makeEdge new-node prev-node ;; make the edge
     set degrees lput prev-node degrees
     set degrees lput new-node degrees
     set prev-node new-node
   ]
-  make-edge new-node first-node
+  Topology.makeEdge new-node first-node
 ;  ask first-node [
 ;    set agent-type 1 
 ;  ]
-  setup-central-agent first-node
+  Topology.adjustCentralAgent first-node
 
   while [count turtles with [my-group = group-id] < number-of-agents] [
-    make-node  ;; add one new node
+    Topology.makeNode  ;; add one new node
     
     ;; it's going to have m edges
     repeat num-edges [
-      let partner find-partner new-node     ;; find a partner for the new node
+      let partner Topology.findPartner new-node     ;; find a partner for the new node
       ;ask partner [set color blue]    ;; set color of partner to gray
-      make-edge new-node partner     ;; connect it to the partner we picked before
+      Topology.makeEdge new-node partner     ;; connect it to the partner we picked before
     ]
   ]
   
   let setOfAgents turtles with [my-group = group-id]
   layout-circle (but-first sort setOfAgents) 5
-  move-to-agent setOfAgents first-node
+  Topology.moveToCentralAgent setOfAgents first-node
 end
 
 ;; connects the two nodes
-to make-edge [node1 node2]
+to Topology.makeEdge [node1 node2]
   ask node1 [
     ifelse (node1 = node2) 
     [
@@ -194,16 +200,17 @@ to make-edge [node1 node2]
 end
 
 ;; used for creating a new node
-to make-node
+to Topology.makeNode
   crt 1
   [
     set agent-type 0
     set my-group group-id
-    set new-node self ;; set the new-node global    
+    set new-node self ;; set the new-node global 
+    set agent-has-custom-initial-value false   
   ]
 end
 
-to-report find-partner [node1]
+to-report Topology.findPartner [node1]
   ;; set a local variable called ispref that
   ;; determines if this link is going to be
   ;; preferential of not
@@ -252,48 +259,22 @@ end
 ;    Auxiliary Procedures                                                    ;
 ;----------------------------------------------------------------------------;
 
-to-report setup-central-agent-from-list [ agent-list ]
+to-report Topology.adjustCentralAgentFromNodeList [ agent-list ]
   let centralAgent first sort agent-list
-  ask centralAgent [ set group-size count agent-list]
-  ask centralAgent [ 
-    ;move-to one-of patches with [not any? other patches in-radius 5 with [belongs-to != nobody]] 
-    move-to center-patch-of-group group-id
-    ;set group patches in-radius group-size
-    ;ask group [set belongs-to myself]
-    set agent-type 1
+  ask centralAgent [
+    move-to Topology.centerCoordinatesOfGroup group-id
   ]
   report centralAgent
 end
 
-to setup-central-agent [ centralAgent ]
-  ask centralAgent [ set group-size number-of-agents]
+to Topology.adjustCentralAgent [ centralAgent ]
   ask centralAgent [ 
-    ;move-to one-of patches with [not any? other patches in-radius 5 with [belongs-to != nobody]] 
-    move-to center-patch-of-group group-id
-;    set group patches in-radius group-size
-;    ask group [set belongs-to myself]
+    move-to Topology.centerCoordinatesOfGroup group-id
     set agent-type 1
   ]
 end
 
-to setup-custom-agents [nbOfAgents]
-  ;; set shapes
-  set-default-shape turtles "circle"
-  ;; create agents
-  create-turtles nbOfAgents [ set color blue ]
-  ;; all turtles are initially ungrouped
-  ask turtles [ set my-group -1 ]
-end
-
-to move-central-agent [centralAgent]
-  ask centralAgent [ 
-    move-to one-of patches with [not any? other patches in-radius 5 with [belongs-to != nobody or belongs-to = centralAgent]] 
-    set group patches in-radius group-size
-    ask group [set belongs-to myself]
-  ]
-end
-
-to move-to-agent [setOfAgents centralAgent]
+to Topology.moveToCentralAgent [setOfAgents centralAgent]
   type "center node: " print centralAgent
   let delta 1
   foreach sort setOfAgents [
@@ -307,33 +288,19 @@ to move-to-agent [setOfAgents centralAgent]
         while [y-cor > max-pycor] [set y-cor y-cor - delta]
         while [y-cor < min-pycor] [set y-cor y-cor + delta]
         setxy x-cor y-cor
-        ;setxy (xcor + [xcor] of centralAgent) (ycor + [ycor] of centralAgent)
       ]
-      ;move-to centralAgent
-      ;move-to one-of patches with [not any? turtles-here and belongs-to = centralAgent]
     ]
   ]
 end
 
-;to-report get-home ;; turtle procedure
-;  ;; calculate the minimum length of each side of our grid
-;  let side ceiling (sqrt (max [my-group] of turtles + 1))
-;
-;  report patch
-;           ;; compute the x coordinate
-;           (round ((world-width / side) * (my-group mod side)
-;             + min-pxcor + int (world-width / (side * 2))))
-;           ;; compute the y coordinate
-;           (round ((world-height / side) * int (my-group / side)
-;             + min-pycor + int (world-height / (side * 2))))
-;end
-
-
-
-
-
-
-
-
-
-
+to-report Topology.centerCoordinatesOfGroup [id-group]
+  let slotsPerRow ceiling sqrt total-groups 
+  let slotSize world-width / slotsPerRow
+  let slotRow (floor (id-group / slotsPerRow))
+  if id-group mod slotsPerRow = 0 [ set slotRow slotRow - 1 ]
+  let slotColumn (id-group mod slotsPerRow) - 1
+  if slotColumn = -1 [ set slotColumn slotsPerRow - 1 ]
+  let patchX (min-pxcor) + slotColumn * slotSize + slotSize / 2 - 1
+  let patchY (max-pycor) - slotRow * slotSize - slotSize / 2 + 1
+  report patch patchX patchY
+end

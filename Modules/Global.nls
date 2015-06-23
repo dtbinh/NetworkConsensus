@@ -39,29 +39,31 @@ turtles-own [
   
   ; a number representing the group this turtle is a member of, or -1 if this turtle is not in a group.
   my-group
-  group
-  group-size
   
   ; a number indicating the type of the node
-  agent-type  
+  agent-type
+  
+  ; initial value of the node (others value or head value by default according to agent-type
+  agent-initial-value
+  
+  ; variable that indicates if the node has a custom initial value
+  agent-has-custom-initial-value
+  
+  ; auxiliary identifier (this value is used instead of "who" for convenience purposes)
+  identifier 
   
 ]
 
-to-report internal-group-id
-    let turtle-group my-group
-    report position self sort turtles with [ my-group = turtle-group ]
-end
-
-to-report turtle-with-group-and-internal-id [turtle-group-id internal-id]
-    report item internal-id sort turtles with [my-group = turtle-group-id ]
-end
-
-to-report get-in-neighbour-weights
+to-report Global.getInNeighborsWeight
   let in-weight-sum 0
-  foreach sort my-in-influence-links[
-       set in-weight-sum (in-weight-sum + [weight] of ?)  
+  ask my-in-influence-links [
+    set in-weight-sum (in-weight-sum + weight)  
   ]
   report in-weight-sum 
+end
+
+to-report Global.turtleWithId [id]
+  report one-of turtles with [identifier = id]
 end
 
 ;----------------------------------------------------------------------------;
@@ -75,7 +77,7 @@ directed-link-breed [influence-links influence-link]
 ;; where is my-out-influence-links (builtin macro!) --> directed-link-bread
 links-own [ 
   
-  ; the strength of the influence of the from (out) agent on the to (in) agent -- future: can be calculated as a difference between the strengths of the respective agents
+  ; the strength of the influence of the from (out) agent on the to (in) agent
   weight
   
   ; a boolean that indicates if the link connects to different groups
@@ -84,63 +86,53 @@ links-own [
 ]  
 
 ;----------------------------------------------------------------------------;
-;    Patches                                                                 ;
-;----------------------------------------------------------------------------;
-
-patches-own [ belongs-to  ]
-
-;----------------------------------------------------------------------------;
 ;    Global variables                                                        ;
 ;----------------------------------------------------------------------------;
 
 globals [
-  p
-  new-node  ;; the last node we created
-  degrees   ;; this is an array that contains each node in
-            ;; proportion to its degree
-  group-ids
-  total-agents
+  
+  ; results precision (number of decimal places)
+  results-precision
+  
+  ; the last node we created (Scale-free)
+  new-node 
+  
+  ; this is an array that contains each node in proportion to its degree 
+  degrees   
   
   ; simulation variables for variations (eps = epsilon, agt = number of agents)
   eps
   agt
   
-  ; Boolean to check if header of out file is already printed
+  ; boolean to check if header of out file is already printed
   printed-head
   
+  ; number-of-groups
+  number-of-groups
+  
+  ; network size (max number of groups)
+  network-size
+   
+  ; cumulative ticks count
+  number-of-ticks
+  
+  ; boolean indicating if a simulation is running or not
+  running-simulation
+    
 ] 
 
 ;----------------------------------------------------------------------------;
 ;    Auxiliary general procedures                                            ;
 ;----------------------------------------------------------------------------;
 
-to display-labels
-  ask turtles [ set label "" ]
-  if show-self-value [
-    ask turtles [ set label round self-val ]
-  ]
-end
-
-to-report center-patch-of-group [id-group]
-  let slotsPerRow ceiling sqrt total-groups 
-  let slotSize world-width / slotsPerRow
-  let slotRow (floor (id-group / slotsPerRow))
-  if id-group mod slotsPerRow = 0 [ set slotRow slotRow - 1 ]
-  let slotColumn (id-group mod slotsPerRow) - 1
-  if slotColumn = -1 [ set slotColumn slotsPerRow - 1 ]
-  let patchX (min-pxcor) + slotColumn * slotSize + slotSize / 2 - 1
-  let patchY (max-pycor) - slotRow * slotSize - slotSize / 2 + 1
-  report patch patchX patchY
-end
-
-to-report adjacency-matrices
+to-report Global.adjacencyMatrices
   
   let adjacency-matrices-list []
   
   ; group-id iteration
   let id-group 1
   
-  repeat total-groups [
+  repeat number-of-groups [
       
       ; retrieve group
       let turtle-group sort turtles with [my-group = id-group]
@@ -180,15 +172,32 @@ to-report adjacency-matrices
   
 end
 
-to-report inter-group-links
+to-report Global.interGroupLinks
   
   let inter-group-links-list []
   ask influence-links with [ inter-group = true ] [
     let inter-group-link []
-    set inter-group-link lput ([who] of end1) inter-group-link
-    set inter-group-link lput ([who] of end2) inter-group-link
+    set inter-group-link lput ([identifier] of end1) inter-group-link
+    set inter-group-link lput ([identifier] of end2) inter-group-link
     set inter-group-links-list lput inter-group-link inter-group-links-list 
   ]
   report inter-group-links-list
+  
+end
+
+to-report Global.headNodes
+  report map [[identifier] of ?] sort turtles with [agent-type = 1]
+end
+
+to-report Global.customInitialNodeValues
+  
+  let custom-initial-values-list []
+  ask turtles with [agent-has-custom-initial-value] [
+    let custom-initial-value []
+    set custom-initial-value lput identifier custom-initial-value
+    set custom-initial-value lput agent-initial-value custom-initial-value
+    set custom-initial-values-list lput custom-initial-value custom-initial-values-list
+  ]
+  report custom-initial-values-list
   
 end
