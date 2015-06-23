@@ -43,6 +43,12 @@ turtles-own [
   ; a number indicating the type of the node
   agent-type
   
+  ; initial value of the node (others value or head value by default according to agent-type
+  agent-initial-value
+  
+  ; variable that indicates if the node has a custom initial value
+  agent-has-custom-initial-value
+  
   ; auxiliary identifier (this value is used instead of "who" for convenience purposes)
   identifier 
   
@@ -181,4 +187,17 @@ end
 
 to-report Global.headNodes
   report map [[identifier] of ?] sort turtles with [agent-type = 1]
+end
+
+to-report Global.customInitialNodeValues
+  
+  let custom-initial-values-list []
+  ask turtles with [agent-has-custom-initial-value] [
+    let custom-initial-value []
+    set custom-initial-value lput identifier custom-initial-value
+    set custom-initial-value lput agent-initial-value custom-initial-value
+    set custom-initial-values-list lput custom-initial-value custom-initial-values-list
+  ]
+  report custom-initial-values-list
+  
 end

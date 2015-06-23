@@ -205,7 +205,8 @@ to Topology.makeNode
   [
     set agent-type 0
     set my-group group-id
-    set new-node self ;; set the new-node global    
+    set new-node self ;; set the new-node global 
+    set agent-has-custom-initial-value false   
   ]
 end
 

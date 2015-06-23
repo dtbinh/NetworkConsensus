@@ -19,30 +19,30 @@ extensions [ nw ]
 __includes [
 
   ; GLOBAL DEFINITIONS MODULE
-  "global.nls" 
+  "Modules/Global.nls" 
   
   ; SETUP MODULE
-  "setup.nls" 
+  "Modules/Setup.nls" 
   
   ; TOPOLOGY MODULE
-  "topology.nls" 
+  "Modules/Topology.nls" 
   
   ; SIMULATION MODULE
-  "simulation.nls" 
+  "Modules/Simulation.nls" 
 
   ; FILE I/O MODULE
-  "file-io.nls"
+  "Modules/FileIO.nls"
   
   ; ERROR MODULE
-  "error.nls"
+  "Modules/Error.nls"
 
 ]
 @#$#@#$#@
 GRAPHICS-WINDOW
 585
 65
-1173
-674
+1174
+675
 7
 7
 38.6
@@ -142,7 +142,7 @@ INPUTBOX
 125
 415
 number-of-agents
-5
+10
 1
 0
 Number
@@ -165,7 +165,7 @@ SWITCH
 588
 print-log-header
 print-log-header
-0
+1
 1
 -1000
 
@@ -205,7 +205,7 @@ CHOOSER
 network-type?
 network-type?
 "Radial Network" "Full Network" "Ring Network" "Custom Wheel" "Random Network" "Scale-free Network"
-0
+1
 
 INPUTBOX
 10
@@ -610,7 +610,7 @@ SLIDER
 group-id
 group-id
 1
-total-groups
+number-of-groups
 1
 1
 1
@@ -710,7 +710,7 @@ CHOOSER
 node-label
 node-label
 "None" "Group ID" "Node ID" "Node Value" "Closeness centrality"
-2
+3
 
 BUTTON
 500

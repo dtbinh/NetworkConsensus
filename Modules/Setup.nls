@@ -158,7 +158,10 @@ to Setup.adjustAgents [adjacency-matrix]
     ; create/kill turtles if the number of turtles with the given group-id is different
     ; from the given number of agents
     ifelse (number-of-turtles-in-group < number-of-agents) [
-      create-turtles (number-of-agents - number-of-turtles-in-group) [ set my-group group-id ]
+      create-turtles (number-of-agents - number-of-turtles-in-group) [ 
+        set my-group group-id
+        set agent-has-custom-initial-value false
+      ]
     ]
     [
       ask max-n-of (number-of-turtles-in-group - number-of-agents) turtles with [ my-group = group-id ] [ who ] [ die ]
@@ -172,8 +175,26 @@ end
 ; Sets nodes properties depending on their type.
 
 to Setup.adjustAgentTypeProperties
-  ask turtles with [ agent-type = 0 ] [ set color blue set self-val other's-value set size 1.5 ]
-  ask turtles with [ agent-type = 1 ] [ set color red set self-val head's-value set size 1.5 ]
+  ask turtles [
+    
+    ; set color
+    ifelse agent-type = 1 [ 
+      set color red 
+      set self-val head's-value
+    ][ 
+      set color blue 
+      set self-val other's-value
+    ]
+    
+    ; set node size
+    set size 1.5
+    
+    ; set value
+    if agent-has-custom-initial-value [
+      set self-val agent-initial-value
+    ]
+    
+  ]
 end
 
 to Setup.adjustAgentsIdentifiers
@@ -200,18 +221,26 @@ to Setup.resizeNetwork
   let new-network-size (ceiling sqrt total-groups) ^ 2
   
   if total-groups != number-of-groups [
-      
-    set number-of-groups total-groups
     
-    if (new-network-size != network-size or total-groups < number-of-groups) [
-      
-      if (total-groups <= 0) [ Error.report 5 stop ]
+    if (total-groups <= 0) [ Error.report 5 stop ]
+    
+    let network-size-decreases (total-groups < number-of-groups)
+    
+    if (network-size-decreases) and (count turtles with [my-group > total-groups] > 0) [
+        if not user-yes-or-no? "ATTENTION: This action will erase all the topologies that have a group id bigger than the given number of groups. Would you like to continue?"
+        [ stop ]
+    ]
+    
+    set number-of-groups total-groups
+   
+    if (new-network-size != network-size) or (network-size-decreases) [
       
       set network-size new-network-size
       
       let temp-adjacency Global.adjacencyMatrices
       let temp-inter-group-links Global.interGroupLinks
       let temp-head-agents Global.headNodes
+      let temp-custom-initial-values Global.customInitialNodeValues
       
       set group-id 1
       
@@ -219,6 +248,7 @@ to Setup.resizeNetwork
       let window-length world-width * patch-size
       
       resize-world (0 - world-size) world-size (0 - world-size) world-size
+      clear-turtles
       set-patch-size window-length / world-width
       
       while [(group-id <= network-size) and (group-id <= length temp-adjacency)] [
@@ -242,12 +272,23 @@ to Setup.resizeNetwork
           ]
         ]
         
+        foreach temp-custom-initial-values [
+          if (item 0 ?) <= max-identifier [
+            ask Global.turtleWithId (item 0 ?) [
+              set agent-has-custom-initial-value true
+              set agent-initial-value item 1 ?
+            ]
+          ]
+        ]
+        
         Setup.adjustAgentTypeProperties
       ]
       
       set group-id 1
       
     ]
+    
+    Simulation.updateNodeLabels
     
   ]
  
@@ -344,7 +385,39 @@ to convert-into-others [nodes]
 end
 
 ; delete node
-to delete-node [node-identifier]
-  ask Global.turtleWithId node-identifier [die]
+to delete-node [nodes]
+  ifelse is-list? nodes [
+    foreach nodes [
+      ask Global.turtleWithId ? [die]
+    ]
+  ]
+  [
+    if is-number? nodes [
+      ask Global.turtleWithId nodes [die]
+    ]
+  ]
   Setup.adjustAgentsIdentifiers
+end
+
+; set node-value
+to set-node-initial-value [nodes value]
+  ifelse is-list? nodes [
+    foreach nodes [
+      ask Global.turtleWithId ? [
+        set agent-has-custom-initial-value true
+        set agent-initial-value value 
+        set self-val value
+      ]
+    ]
+  ]
+  [
+    if is-number? nodes [
+      ask Global.turtleWithId nodes [
+        set agent-has-custom-initial-value true
+        set agent-initial-value value 
+        set self-val value
+      ]
+    ]
+  ]
+  Simulation.updateNodeLabels
 end
